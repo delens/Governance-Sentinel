@@ -1,0 +1,6 @@
+transaction_id,client_id,amount,currency,timestamp,age_category,loan_approved
+101.0,C01,1500,EUR,2023-10-01,1,0
+102.0,C02,-50,EUR,2023-10-01,2,1
+,C03,3000,USD,2022-01-01,1,0
+104.0,C04,4500,XYZ,2023-10-02,1,0
+105.0,C05,9999999,EUR,2023-10-03,2,1
