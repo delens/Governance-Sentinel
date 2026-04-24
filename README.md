@@ -57,6 +57,9 @@ This project follows a managed lifecycle, documented in the **GitHub Projects** 
 ### Execution
 ```bash
 python3 main.py
+```
+
+---
 
 ## 👤 Author & Leadership
 **Daniele Delens**
