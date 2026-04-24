@@ -57,3 +57,9 @@ This project follows a managed lifecycle, documented in the **GitHub Projects** 
 ### Execution
 ```bash
 python3 main.py
+
+## 👤 Author & Leadership
+**Daniele Delens**
+Senior Data Governance & BCBS239 Specialist
+* **LinkedIn**: https://www.linkedin.com/in/delens/
+* **Role**: Chief Business Risk Manager - BCBS 239 SME
