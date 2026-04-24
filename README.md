@@ -1,58 +1,59 @@
-# Governance-Sentinel 🛡️
-### Automated Data Governance Framework for BCBS 239 & EU AI Act Compliance
+# 🛡️ Governance-Sentinel: AI-Driven Compliance & Data Integrity Framework
 
-**Governance-Sentinel** is a Python-based framework designed to bridge the gap between regulatory requirements and automated data oversight. It provides a modular approach to monitoring financial data integrity and ensuring algorithmic fairness in high-risk AI systems (e.g., Credit Scoring).
-
-### ⚖️ Technical Focus: Disparate Impact Analysis
-To comply with the **EU AI Act's** requirements for non-discrimination in high-risk AI, this framework calculates the **Disparate Impact (DI)** ratio. 
-
-* **Metric Definition**: DI compares the selection rate of a protected group (e.g., Seniors) against a privileged group (e.g., Juniors).
-* **Compliance Threshold**: Following international regulatory standards, a DI ratio below **0.80** indicates a "Disparate Impact," signaling that the underlying data or model may be discriminatory.
-* **Governance Action**: In this framework, a DI of **0.00** was detected, triggering an immediate "High Risk" alert in the Audit Report, necessitating a full review of the training dataset's representative quality.
----
-
-## 📌 Executive Summary
-In the modern banking landscape, manual governance is a liability. This project demonstrates a "Compliance-as-Code" approach to handle:
-1. **BCBS 239**: Risk data aggregation and reporting accuracy.
-2. **EU AI Act**: Ethical oversight and bias detection in automated decision-making.
+**Governance-Sentinel** is an enterprise-grade "Compliance-as-Code" solution developed to automate the oversight of high-risk financial data ecosystems. It specifically addresses the regulatory intersection of **BCBS 239** (Risk Data Aggregation) and the **EU AI Act** (Algorithmic Fairness and Transparency).
 
 ---
 
-## 🛠️ Technical Architecture & Libraries
-The framework is built using a modular Python architecture:
-* **Data Processing**: `Pandas` for robust data manipulation and cleaning.
-* **Algorithmic Fairness**: `AIF360` (IBM Toolkit) to measure the **Disparate Impact Ratio**, ensuring non-discriminatory outcomes for protected groups (Age, Gender, etc.).
-* **Automated Reporting**: `FPDF` for generating executive-level Audit Reports.
+## 🏢 Strategic Overview
+In the current regulatory climate, financial institutions face a dual challenge: maintaining the highest standards of data quality while ensuring that the transition to AI-driven decision-making remains ethical and compliant. This framework acts as an automated **Second Line of Defense (2LoD)**, providing continuous monitoring and executive-level assurance.
 
 ---
 
-## 📋 Governance Pillars (Implementation Details)
+## 🛠️ Technical Architecture & Pillars
 
-### 1. Data Quality Framework (BCBS 239 Alignment)
-The engine validates 4 critical dimensions of data:
-* **Completeness**: Ensures no missing values in critical identifiers (e.g., Transaction IDs).
-* **Accuracy**: Validates financial amounts against predefined risk thresholds.
-* **Validity**: Checks data against official dictionaries (e.g., ISO Currency Codes).
-* **Timeliness**: Ensures data points fall within the required reporting period.
+### 1. Risk Data Integrity Engine (BCBS 239 Implementation)
+The framework implements a rigorous validation layer designed to satisfy the **Principles for Effective Risk Data Aggregation and Risk Reporting**. It maps technical checks to specific DQ dimensions:
 
-### 2. AI Ethics & Fairness Audit (EU AI Act Compliance)
-Simulating an audit for a **High-Risk AI system** (Credit Scoring), the framework:
-* Identifies "Protected Attributes" (e.g., Age Category).
-* Calculates the **Disparate Impact Ratio**. 
-* **Risk Threshold**: A score below **0.80** triggers a "High Risk" alert, indicating potential systemic discrimination that requires immediate remediation before model deployment.
+* **Completeness (Principle 3)**: Automated detection of orphans and null values in critical data elements (CDEs) like `transaction_id`.
+* **Accuracy (Principle 4)**: Outlier detection and threshold validation for financial amounts to prevent data corruption in risk models.
+* **Validity**: Alignment with ISO-compliant metadata (e.g., Currency Codes) and internal master data dictionaries.
+* **Timeliness (Principle 11)**: Temporal verification to ensure data availability within regulatory reporting windows (e.g., T+1).
+
+### 2. Algorithmic Fairness Audit (EU AI Act - Art. 10 & 13)
+Targeting **High-Risk AI systems** (such as Credit Scoring and Loan Underwriting), the framework integrates the **IBM AIF360** toolkit to perform quantitative bias auditing.
+
+#### **The Mathematics of Fairness: Disparate Impact Ratio**
+The engine monitors the **Disparate Impact (DI)** ratio, a key metric for detecting indirect discrimination. It uses **Conditional Probability** to compare selection rates across demographic groups:
+
+$$DI = \frac{P(\text{Outcome} = 1 \mid \text{Unprivileged Group})}{P(\text{Outcome} = 1 \mid \text{Privileged Group})}$$
+
+* **Metric Interpretation**: A DI of **1.0** indicates perfect equity.
+* **Regulatory Threshold**: In accordance with international standards (e.g., US EEOC 4/5ths rule), any score below **0.80** triggers a **Critical Remediation Alert**.
+* **The "0.00" Scenario**: Our current audit detected a DI of **0.00**, indicating a total exclusion of the protected group (Seniors). This demonstrates the framework's ability to identify systemic bias before model deployment.
 
 ---
 
-## 🚀 Roadmap & Remediation Strategy
-This project includes a managed **GitHub Roadmap** (see Projects tab) focusing on:
-* **Remediation workflows** for failed DQ checks.
-* **Continuous Monitoring** integration for real-time compliance dashboards.
-* **Metadata Lineage** tracking for end-to-end data traceability.
+## 📊 Executive Reporting & Audit Trail
+Unlike standard scripts, Governance-Sentinel produces a **Formal Audit Report (PDF)**. This document is designed for stakeholders such as:
+* **Chief Data Officers (CDO)** for DQ oversight.
+* **Internal Audit** for evidence of control effectiveness.
+* **Regulators (ECB/EBA)** as part of the technical documentation for AI systems.
 
 ---
 
-## 💻 How to Run (Local Environment)
-1. Clone the repository.
-2. Install dependencies: `pip install pandas aif360 fpdf fairlearn`.
-3. Execute the audit: `python3 main.py`.
-4. Review the generated `Audit_Report.pdf`.
+## 📈 Managed Roadmap & Scalability
+This project follows a managed lifecycle, documented in the **GitHub Projects** tab:
+1.  **Phase 1 (Completed)**: Core DQ Validation & Bias Detection modules.
+2.  **Phase 2 (Active)**: Automated PDF Reporting and Executive Dashboarding.
+3.  **Phase 3 (Backlog)**: Integration with **Data Lineage** tools and automated remediation (self-healing data).
+
+---
+
+## 🚀 Deployment & Usage
+### Prerequisites
+* Python 3.10+
+* Libraries: `pandas`, `aif360`, `fpdf`, `scikit-learn`
+
+### Execution
+```bash
+python3 main.py
