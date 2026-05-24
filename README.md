@@ -4,6 +4,18 @@
 
 ---
 
+## ⚠️ Important Notice — Personal Research Sandbox
+
+**This repository is a personal sandbox environment, developed entirely in my own time and on my own initiative.**
+
+The project was created to explore open-source tooling — Python, draw.io, Mermaid, AI libraries — applied to regulatory scenarios inspired by publicly available frameworks such as BCBS 239 and the EU AI Act. Its purpose is strictly educational and experimental.
+
+> **All data used in this project is entirely synthetic and artificially generated.** It does not contain, reproduce, or derive from any real data, systems, internal processes, documentation, or intellectual property belonging to any organisation. Any resemblance to real business scenarios is purely coincidental and a natural consequence of working with publicly documented regulatory frameworks.
+
+This project is not connected in any way to any professional activity, employer (past or present), client, or production system. No proprietary code, data, process, or business know-how has been used, reproduced, or exported.
+
+---
+
 ## 🏢 Strategic Overview
 In the current regulatory climate, financial institutions face a dual challenge: maintaining the highest standards of data quality while ensuring that the transition to AI-driven decision-making remains ethical and compliant. This framework acts as an automated **Second Line of Defense (2LoD)**, providing continuous monitoring and executive-level assurance.
 
@@ -50,19 +62,57 @@ This project follows a managed lifecycle, documented in the **GitHub Projects** 
 ---
 
 ## 🚀 Deployment & Usage
+
 ### Prerequisites
-* Python 3.10+
-* Libraries: `pandas`, `aif360`, `fpdf`, `scikit-learn`
+
+- Python 3.10+
+
+```bash
+pip install -r requirements.txt
+```
 
 ### Execution
+
 ```bash
 python3 main.py
 ```
+
+### Generated outputs
+
+- `Audit_Report.pdf` — formal audit report
+- `governance_sentinel.log` — structured execution log (audit trail)
+- `raw_financial_data.csv` — synthetic dataset (mock mode only)
+
+---
+
+## 📋 Changelog
+
+### [1.1.0] — 2026-05-24
+
+#### Fixed
+- `validators.py` — Added `df.copy()` to prevent in-place mutation of the original DataFrame across modules.
+- `validators.py` — Extended null check to all CDEs (`amount`, `currency`, `timestamp`) before domain-level controls.
+- `main.py` — Replaced bare `except Exception` with `logging.exception()` for full traceback capture on file.
+- `reporter.py` — Added generation timestamp and framework version to the PDF (mandatory for ECB/EBA audit trail).
+
+#### Added
+- `data_loader.py` — `mode='mock'|'real'` flag to cleanly separate synthetic from real data; schema validation via `REQUIRED_COLUMNS`.
+- `data_loader.py` — `_load_real()` function prepared for Phase 2 (CSV/DB/API loading with schema validation).
+- `reporter.py` — Explicit BCBS 239 Principle mapping per DQ dimension in the PDF; dedicated handling of DI = 0.00 (systemic bias alert).
+- `main.py` — Structured logging to both console and permanent `governance_sentinel.log` file; pipeline organised in 4 numbered steps.
+- `requirements.txt` — New file with pinned dependency versions for CI/CD and regulatory audit reproducibility.
+
+### [1.0.0] — 2026-05-01
+
+#### Added
+- Core DQ Validation Engine (BCBS 239 — Principles 3, 4, 6, 11).
+- Algorithmic Fairness Audit via IBM AIF360 (EU AI Act Art. 10 & 13).
+- Automated PDF Audit Report generation via fpdf.
+- Synthetic dataset with intentional anomalies for demo and testing.
 
 ---
 
 ## 👤 Author & Leadership
 **Daniele Delens**
-Senior Data Governance & BCBS239 Specialist
+Data Governance & BCBS239 Specialist
 * **LinkedIn**: https://www.linkedin.com/in/delens/
-* **Role**: Chief Business Risk Manager - BCBS 239 SME
