@@ -1,103 +1,151 @@
-"""
-main.py — Governance-Sentinel Entry Point
-==========================================
-Orchestratore principale del framework di audit.
+"""Governance-Sentinel entry point.
 
-Pipeline di esecuzione:
-    1. Data Loading   : carica (o genera) i dati finanziari
-    2. BCBS 239 Audit : valida le dimensioni DQ sui Critical Data Elements
-    3. Fairness Audit : misura il Disparate Impact per EU AI Act (Art. 10)
-    4. Report PDF     : genera documentazione formale per stakeholder regolatori
+Pipeline:
+    1. Load mock rows, or a CSV when ``--mode real`` is set.
+    2. Run the BCBS 239 data-quality checks.
+    3. Measure disparate impact on the synthetic approval label.
+    4. Write a PDF audit report.
 
-Uso:
-    python3 main.py                  # esecuzione standard con dati mock
-    python3 main.py --mode real      # (Phase 2) con dati reali da CSV/DB
-
-Autore : Daniele Delens — Senior Data Governance & BCBS 239 Specialist
+Examples:
+    python main.py
+    python main.py --mode real --csv raw_financial_data.csv
+    python main.py --log-level DEBUG
 """
 
+from __future__ import annotations
+
+import argparse
+import logging
 import os
 import sys
-import logging
+from datetime import datetime, timezone
 
-# --- Silenzia warning TensorFlow / AIF360 per output pulito in console ---
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
-# --- Logging strutturato: output su console E su file per audit trail ---
-# Il file governance_sentinel.log è la traccia permanente di ogni esecuzione.
-# È fondamentale per dimostrare evidenza dei controlli a revisori regolatori.
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler("governance_sentinel.log", encoding="utf-8"),
-    ],
-)
-# Sopprimi i logger verbosi di librerie terze (aif360, sklearn, tensorflow)
-for noisy_lib in ("root", "aif360", "sklearn", "tensorflow"):
-    logging.getLogger(noisy_lib).setLevel(logging.ERROR)
+from data_loader import generate_mock_data
+from reporter import FRAMEWORK_VERSION, create_pdf_report
+from validators import run_bcbs239_audit
 
 logger = logging.getLogger(__name__)
 
-from data_loader import generate_mock_data
-from validators import run_bcbs239_audit
-from bias_audit import run_fairness_audit
-from reporter import create_pdf_report
+_HANDLERS: list[logging.Handler] = []
 
 
-def main() -> None:
+class _OptionalExtraFilter(logging.Filter):
+    """Hide AIF360 notices for optional extras this prototype does not use.
+
+    Importing the disparate-impact metric pulls those notices onto the root
+    logger. They are not TensorFlow runtime logs, and the root level itself
+    stays at the level the caller requested.
     """
-    Esegue la pipeline completa di audit e genera il report PDF.
 
-    Gli errori vengono loggati con traceback completo su file e console,
-    garantendo tracciabilità anche in caso di fallimento (requisito audit).
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "will be unavailable" not in record.getMessage()
+
+
+class UtcFormatter(logging.Formatter):
+    """Format ``asctime`` from a timezone-aware UTC timestamp."""
+
+    def formatTime(self, record: logging.LogRecord, datefmt: str | None = None) -> str:
+        moment = datetime.fromtimestamp(record.created, tz=timezone.utc)
+        if datefmt:
+            return moment.strftime(datefmt)
+        formatted = moment.strftime(self.default_time_format)
+        if self.default_msec_format:
+            return self.default_msec_format % (formatted, record.msecs)
+        return formatted
+
+
+def configure_logging(level: str, log_file: str) -> None:
+    """Send logs to stdout and ``log_file`` at the requested root level.
+
+    Third-party loggers are left alone. The root logger is not forced to ERROR.
+    TensorFlow is not a dependency, so its log-level variable is not set.
     """
-    logger.info("=" * 60)
-    logger.info("🚀 Governance-Sentinel: avvio framework")
-    logger.info("=" * 60)
+    root = logging.getLogger()
+    root.setLevel(level.upper())
+    if not any(isinstance(item, _OptionalExtraFilter) for item in root.filters):
+        root.addFilter(_OptionalExtraFilter())
+    formatter = UtcFormatter(
+        "%(asctime)s UTC | %(levelname)-8s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
-    # ------------------------------------------------------------------
-    # STEP 1 — DATA LOADING
-    # mode='mock' : dati sintetici con anomalie intenzionali per il demo.
-    # mode='real' : (Phase 2) sostituire con caricamento da CSV/DB reale.
-    # ------------------------------------------------------------------
-    logger.info("STEP 1/4 — Caricamento dati (mode=mock)")
-    df = generate_mock_data()
-    logger.info("Dataset caricato: %d righe, %d colonne", len(df), len(df.columns))
+    for handler in _HANDLERS:
+        root.removeHandler(handler)
+        handler.close()
+    _HANDLERS.clear()
 
-    # ------------------------------------------------------------------
-    # STEP 2 — BCBS 239 DQ AUDIT
-    # ------------------------------------------------------------------
-    logger.info("STEP 2/4 — Avvio BCBS 239 Data Quality Audit")
-    dq_results = run_bcbs239_audit(df)
-    logger.info("Risultati DQ: %s", dq_results)
-    print(f"   Audit DQ completato: {dq_results}")
+    stream = logging.StreamHandler(sys.stdout)
+    stream.setFormatter(formatter)
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    root.addHandler(stream)
+    root.addHandler(file_handler)
+    _HANDLERS.extend((stream, file_handler))
 
-    # ------------------------------------------------------------------
-    # STEP 3 — EU AI ACT FAIRNESS AUDIT (Disparate Impact)
-    # ------------------------------------------------------------------
-    logger.info("STEP 3/4 — Avvio EU AI Act Fairness Audit")
-    bias_score = run_fairness_audit(df)
-    logger.info("Disparate Impact Score: %.4f", bias_score)
-    print(f"   Audit Bias completato: Score {bias_score:.4f}")
 
-    # ------------------------------------------------------------------
-    # STEP 4 — GENERAZIONE REPORT PDF
-    # ------------------------------------------------------------------
-    logger.info("STEP 4/4 — Generazione Audit Report PDF")
-    create_pdf_report(dq_results, bias_score)
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse the command line. ``LOG_LEVEL`` is the default for ``--log-level``."""
+    parser = argparse.ArgumentParser(description="Governance-Sentinel audit pipeline")
+    parser.add_argument(
+        "--mode",
+        choices=("mock", "real"),
+        default="mock",
+        help="mock writes a synthetic CSV; real reads --csv (default: mock).",
+    )
+    parser.add_argument(
+        "--csv",
+        default="raw_financial_data.csv",
+        help="CSV written in mock mode, or read in real mode.",
+    )
+    parser.add_argument(
+        "--output",
+        default="Audit_Report.pdf",
+        help="PDF report path (default: Audit_Report.pdf).",
+    )
+    parser.add_argument(
+        "--log-file",
+        default="governance_sentinel.log",
+        help="UTF-8 audit log, appended across runs.",
+    )
+    parser.add_argument(
+        "--log-level",
+        default=os.environ.get("LOG_LEVEL", "INFO"),
+        type=str.upper,
+        choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"),
+        help="Root logger level. Default: INFO, or the LOG_LEVEL environment variable.",
+    )
+    return parser.parse_args(argv)
 
-    logger.info("✅ Pipeline completata con successo.")
-    print("\n✅ OPERAZIONE COMPLETATA!")
-    print("📂 File generati: Audit_Report.pdf  |  governance_sentinel.log")
+
+def main(argv: list[str] | None = None) -> None:
+    """Run the four pipeline steps."""
+    args = parse_args(argv)
+    configure_logging(args.log_level, args.log_file)
+
+    logger.info("Governance-Sentinel %s starting", FRAMEWORK_VERSION)
+    logger.info("STEP 1/4 - Loading data (mode=%s)", args.mode)
+    frame = generate_mock_data(mode=args.mode, csv_path=args.csv)
+    logger.info("Dataset loaded: %d rows, %d columns", len(frame), len(frame.columns))
+
+    logger.info("STEP 2/4 - BCBS 239 data-quality audit")
+    dq_results = run_bcbs239_audit(frame)
+
+    logger.info("STEP 3/4 - Disparate-impact audit")
+    # Imported here so AIF360's optional-extra notices are filtered by the
+    # logging configuration above, instead of installing their own handler.
+    from bias_audit import run_fairness_audit
+
+    bias_score = run_fairness_audit(frame)
+
+    logger.info("STEP 4/4 - Writing PDF audit report")
+    create_pdf_report(dq_results, bias_score, output_path=args.output)
+    logger.info("Pipeline completed successfully.")
+    logger.info("Files: %s | %s", args.output, args.log_file)
 
 
 if __name__ == "__main__":
     try:
         main()
-    except Exception as exc:
-        # logging.exception cattura il traceback completo → essenziale per il debug
-        # in ambienti regolatori dove non si può accedere alla console in produzione.
-        logger.exception("❌ Errore fatale durante l'esecuzione: %s", exc)
+    except Exception:
+        logger.exception("Fatal error during execution.")
         sys.exit(1)
