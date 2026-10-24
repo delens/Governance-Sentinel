@@ -1,0 +1,21 @@
+# Bytecode and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Audit log appended on each run
+*.log
+
+# Generated PDF reports. Audit_Report.pdf at the repo root is the committed sample.
+*.pdf
+!Audit_Report.pdf
+
+.DS_Store

@@ -1,106 +1,138 @@
-"""
-validators.py — BCBS 239 Data Quality Audit Engine
-====================================================
-Mappa i Principi BCBS 239 in controlli logici automatizzati
-sulle dimensioni di qualità dei Critical Data Elements (CDE).
+"""BCBS 239 data-quality checks on a small set of critical data elements.
 
-Principi coperti:
-    - Principle 3  : Completeness
-    - Principle 4  : Accuracy
-    - Principle 6  : Validity (allineamento con master data / ISO)
-    - Principle 11 : Timeliness (disponibilità entro T+1)
+Principle numbers follow the Basel Committee on Banking Supervision,
+"Principles for effective risk data aggregation and risk reporting"
+(BCBS 239, January 2013, https://www.bis.org/publ/bcbs239.pdf):
 
-Autore : Daniele Delens — Senior Data Governance & BCBS 239 Specialist
+- Principle 3, Accuracy and Integrity (paragraphs 36-40): risk data is
+  accurate and reliable. Paragraph 37 also expects a dictionary of concepts
+  so data is defined consistently.
+- Principle 4, Completeness (paragraphs 41-43): the bank can capture and
+  aggregate all material risk data across the group.
+- Principle 5, Timeliness (paragraphs 44-47): aggregate, up-to-date risk
+  data is available in time for reporting. The deadline is bank-specific.
+- Principle 6, Adaptability (paragraphs 48-50): ad hoc aggregation.
+  Not implemented here.
+- Principle 7, Accuracy (paragraphs 52-56): risk reports accurately convey
+  aggregated data. This is a reporting principle, separate from Principle 3.
+  Not implemented here.
+- Principle 11, Distribution (paragraphs 72-73): reports reach the right
+  people and stay confidential. Not implemented here.
+
+Validity is a data-quality dimension (a value belongs to an allowed domain).
+It is not a BCBS 239 principle. The currency whitelist supports Principle 3.
 """
+
+from __future__ import annotations
 
 import logging
+from typing import Literal, TypedDict
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+REQUIRED_AUDIT_COLUMNS: tuple[str, ...] = (
+    "transaction_id",
+    "amount",
+    "currency",
+    "timestamp",
+)
+AMOUNT_MIN = 0
+AMOUNT_MAX = 1_000_000
+APPROVED_CURRENCIES: tuple[str, ...] = ("EUR", "USD", "GBP")
+# Demo stand-in for a bank-specific Principle 5 deadline. Not a T+1 SLA.
+TIMELINESS_REFERENCE_DATE = "2023-01-01"
 
-def run_bcbs239_audit(df: pd.DataFrame) -> dict:
+CHECK_NAMES: tuple[str, ...] = ("Completeness", "Accuracy", "Validity", "Timeliness")
+
+
+class DimensionInfo(TypedDict):
+    """How one DQ result maps onto BCBS 239."""
+
+    principle: str
+    principle_title: str
+    kind: Literal["principle", "dq_dimension"]
+
+
+# Official principle titles. Validity is a DQ dimension under Principle 3,
+# not Principle 6 (Adaptability).
+DQ_DIMENSIONS: dict[str, DimensionInfo] = {
+    "Completeness": {
+        "principle": "4",
+        "principle_title": "Completeness",
+        "kind": "principle",
+    },
+    "Accuracy": {
+        "principle": "3",
+        "principle_title": "Accuracy and Integrity",
+        "kind": "principle",
+    },
+    "Validity": {
+        "principle": "3",
+        "principle_title": "Accuracy and Integrity",
+        "kind": "dq_dimension",
+    },
+    "Timeliness": {
+        "principle": "5",
+        "principle_title": "Timeliness",
+        "kind": "principle",
+    },
+}
+
+# Principles a reader should not confuse with the four checks above.
+NOT_IMPLEMENTED: tuple[tuple[str, str], ...] = (
+    ("6", "Adaptability"),
+    ("7", "Accuracy"),
+    ("11", "Distribution"),
+)
+
+
+def run_bcbs239_audit(df: pd.DataFrame) -> dict[str, bool]:
+    """Return PASS/FAIL for each DQ check.
+
+    The input frame is copied and is not modified. An empty frame fails every
+    check: there is no risk data to aggregate.
+
+    Completeness is only the transaction identifier. Null amounts, currencies,
+    and timestamps fail Accuracy, Validity, and Timeliness respectively.
     """
-    Esegue la validazione DQ sulle dimensioni BCBS 239.
+    audited = df.copy()
 
-    Il DataFrame originale NON viene modificato: si lavora su una copia
-    per evitare effetti collaterali tra moduli (side-effect safety).
+    missing = [column for column in REQUIRED_AUDIT_COLUMNS if column not in audited.columns]
+    if missing:
+        logger.error("Required column missing: %s. Audit stopped.", ", ".join(missing))
+        raise ValueError(f"Required column not found: {missing}.")
 
-    Args:
-        df (pd.DataFrame): Dataset finanziario grezzo con almeno le colonne:
-                           transaction_id, amount, currency, timestamp.
+    if audited.empty:
+        logger.error("Input dataset is empty. All data-quality checks fail.")
+        return dict.fromkeys(CHECK_NAMES, False)
 
-    Returns:
-        dict: Mappa {dimensione: bool} con il risultato PASS/FAIL per ciascun
-              principio BCBS 239 verificato.
-    """
-    # --- Copia difensiva: non mutare mai il DataFrame originale ---
-    df = df.copy()
-
-    # ----------------------------------------------------------------
-    # PRE-CHECK: null check su tutti i CDE prima dei controlli di dominio.
-    # Se una colonna critica è completamente nulla, i controlli successivi
-    # potrebbero restituire falsi positivi (es. .all() su serie vuota = True).
-    # ----------------------------------------------------------------
-    critical_columns = ["transaction_id", "amount", "currency", "timestamp"]
-    for col in critical_columns:
-        if col not in df.columns:
-            logger.error("Colonna CDE mancante: %s — audit interrotto.", col)
-            raise ValueError(f"Colonna CDE obbligatoria non trovata: '{col}'")
-
-    # ----------------------------------------------------------------
-    # PRINCIPLE 3 — COMPLETENESS
-    # Tutti i CDE chiave non devono contenere valori nulli.
-    # transaction_id è l'identificatore primario: un null indica
-    # una transazione non tracciabile → violazione critica.
-    # ----------------------------------------------------------------
-    completeness_ok = df["transaction_id"].notnull().all()
+    completeness_ok = bool(audited["transaction_id"].notna().all())
     logger.debug("Completeness check: %s", completeness_ok)
 
-    # ----------------------------------------------------------------
-    # PRINCIPLE 4 — ACCURACY
-    # Gli importi devono essere positivi e rientrare nella soglia massima
-    # autorizzata (1.000.000) per prevenire corruzione nei modelli di rischio.
-    # Nota: importi negativi indicano errori di imputazione, non rimborsi
-    # (quelli andrebbero su colonne separate nel modello dati).
-    # ----------------------------------------------------------------
-    accuracy_ok = (
-        df["amount"].notnull().all()
-        and ((df["amount"] >= 0) & (df["amount"] <= 1_000_000)).all()
+    amounts = audited["amount"]
+    accuracy_ok = bool(
+        amounts.notna().all() and ((amounts >= AMOUNT_MIN) & (amounts <= AMOUNT_MAX)).all()
     )
     logger.debug("Accuracy check: %s", accuracy_ok)
 
-    # ----------------------------------------------------------------
-    # PRINCIPLE 6 — VALIDITY
-    # La valuta deve appartenere alla whitelist ISO 4217 approvata
-    # dall'istituzione. Valute non riconosciute (es. "XYZ") invalidano
-    # il flusso di aggregazione del rischio.
-    # ----------------------------------------------------------------
-    valid_currencies = {"EUR", "USD", "GBP"}
-    validity_ok = (
-        df["currency"].notnull().all()
-        and df["currency"].isin(valid_currencies).all()
-    )
+    currencies = audited["currency"]
+    validity_ok = bool(currencies.notna().all() and currencies.isin(APPROVED_CURRENCIES).all())
     logger.debug("Validity check: %s", validity_ok)
 
-    # ----------------------------------------------------------------
-    # PRINCIPLE 11 — TIMELINESS
-    # I dati devono essere disponibili a partire dal 2023-01-01 (soglia T+1).
-    # La conversione a datetime viene fatta sulla copia, mai sull'originale.
-    # ----------------------------------------------------------------
-    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
-    timeliness_ok = (
-        df["timestamp"].notnull().all()
-        and (df["timestamp"] >= "2023-01-01").all()
+    audited["timestamp"] = pd.to_datetime(audited["timestamp"], errors="coerce")
+    reference = pd.Timestamp(TIMELINESS_REFERENCE_DATE)
+    timeliness_ok = bool(
+        audited["timestamp"].notna().all() and (audited["timestamp"] >= reference).all()
     )
     logger.debug("Timeliness check: %s", timeliness_ok)
 
     results = {
-        "Completeness": bool(completeness_ok),
-        "Accuracy":     bool(accuracy_ok),
-        "Validity":     bool(validity_ok),
-        "Timeliness":   bool(timeliness_ok),
+        "Completeness": completeness_ok,
+        "Accuracy": accuracy_ok,
+        "Validity": validity_ok,
+        "Timeliness": timeliness_ok,
     }
-
-    logger.info("BCBS 239 audit completato: %s", results)
+    logger.info("BCBS 239 audit completed: %s", results)
     return results
