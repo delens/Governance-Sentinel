@@ -28,6 +28,56 @@ python main.py --log-level DEBUG
 
 `--mode real` reads the CSV and checks that the expected columns are present. There is no database or API loader. `--log-level` sets the root logger (default `INFO`). If the flag is omitted, the `LOG_LEVEL` environment variable is used.
 
+## Pipeline
+
+`main.main` runs four steps. `mock` is the default. `real` reads a CSV. The loader is `data_loader.generate_mock_data`.
+
+```mermaid
+flowchart TD
+  start["main.main"] --> logging["main.configure_logging"]
+  logging --> load["data_loader.generate_mock_data"]
+  load --> mode{"mode"}
+  mode -->|mock| mock["Write five synthetic rows to the CSV"]
+  mode -->|real| real["Read the CSV and require seven columns"]
+  mock --> audit["validators.run_bcbs239_audit"]
+  real --> audit
+  audit --> bias["bias_audit.run_fairness_audit"]
+  bias --> report["reporter.create_pdf_report"]
+  report --> files["PDF report and log file"]
+  real -->|missing file or columns| halt["main logs the traceback and exits 1"]
+  audit -->|missing audit column| halt
+  bias -->|missing fields or no usable row| halt
+```
+
+A check that returns fail still continues. On the sample file all four checks fail, the disparate-impact ratio is 0.0000, and the process exits 0 and writes the PDF. `run_bcbs239_audit` copies the frame. An empty frame fails all four checks and still continues.
+
+The halt path is an exception. Real mode raises when the file is missing or when a column in `REQUIRED_COLUMNS` is missing. The audit raises when `transaction_id`, `amount`, `currency`, or `timestamp` is missing. The fairness step raises when `age_category` or `loan_approved` is missing, or when no row keeps both. `main` logs the traceback and exits 1. Any other exception in these steps does the same.
+
+## Modules
+
+```mermaid
+flowchart LR
+  mainPy["main.py"]
+  dataLoader["data_loader.py"]
+  validatorsPy["validators.py"]
+  biasPy["bias_audit.py"]
+  reporterPy["reporter.py"]
+  csvFile["CSV file"]
+  pdfFile["PDF report"]
+  logFile["Log file"]
+
+  mainPy -->|"generate_mock_data"| dataLoader
+  mainPy -->|"run_bcbs239_audit"| validatorsPy
+  mainPy -->|"run_fairness_audit"| biasPy
+  mainPy -->|"create_pdf_report"| reporterPy
+  reporterPy -->|"DQ_DIMENSIONS and thresholds"| validatorsPy
+  dataLoader -->|"mock writes, real reads"| csvFile
+  reporterPy -->|"writes"| pdfFile
+  mainPy -->|"stdout and file"| logFile
+```
+
+`reporter.py` reads `DQ_DIMENSIONS`, `NOT_IMPLEMENTED`, and the check thresholds from `validators.py`. `bias_audit.py` is imported inside `main` after `configure_logging`. Column lists and these stops are in [docs/architecture.md](docs/architecture.md).
+
 ## Sample console output
 
 ```text
@@ -71,6 +121,31 @@ The PDF also names three principles this repository does not implement:
 - Principle 7, Accuracy (paragraphs 52-56): risk reports convey aggregated data accurately. This is a reporting principle, separate from Principle 3.
 - Principle 11, Distribution (paragraphs 72-73): the right people receive the report, and confidentiality holds.
 
+Each row in the diagram is the field check, the data-quality dimension, and the BCBS 239 principle that check supports. Principle 3 is drawn twice, once for Accuracy and once for Validity. Principles 6, 7, and 11 are the lower group.
+
+```mermaid
+flowchart TB
+  subgraph mapped ["Field check, dimension, and the principle it supports"]
+    transactionId["transaction_id populated"] --> completeness["Completeness"]
+    completeness -->|supports| principle4["Principle 4, Completeness"]
+    amountRange["amount present, 0 to 1000000"] --> accuracy["Accuracy"]
+    accuracy -->|supports| principle3["Principle 3, Accuracy and Integrity"]
+    currencyList["currency EUR, USD, or GBP"] --> validity["Validity, DQ dimension"]
+    validity -->|supports| principle3Again["Principle 3, Accuracy and Integrity"]
+    timestampCut["timestamp parses, on or after 2023-01-01"] --> timeliness["Timeliness"]
+    timeliness -->|supports| principle5["Principle 5, Timeliness"]
+  end
+  subgraph notYet ["Not implemented"]
+    principle6["Principle 6, Adaptability"]
+    principle7["Principle 7, Accuracy of reports"]
+    principle11["Principle 11, Distribution"]
+    principle6 ~~~ principle7 ~~~ principle11
+  end
+  mapped -.->|"no check in this code"| notYet
+  classDef pending stroke-dasharray:5 4,stroke:#666
+  class principle6,principle7,principle11 pending
+```
+
 Each check rejects nulls in the field it owns. A null amount fails Accuracy. A missing required column stops the audit before the checks run. An empty frame fails every check. The audit copies the frame and leaves the caller's data unchanged.
 
 ### Rows in the synthetic file
@@ -106,6 +181,28 @@ There is no GitHub Project board on this repository. This list is the roadmap.
 In the repository now: the four checks, the disparate-impact ratio, the PDF, and a CSV reader.
 
 Left out on purpose: a dashboard, data lineage, a rules catalog, automated fixes, and loaders other than CSV.
+
+```mermaid
+flowchart TB
+  subgraph shipped ["In the repository"]
+    csvReader["CSV reader, mock and real"]
+    fourChecks["Four data-quality checks"]
+    ratio["Disparate-impact ratio"]
+    pdfReport["PDF report"]
+    csvReader ~~~ fourChecks ~~~ ratio ~~~ pdfReport
+  end
+  subgraph backlog ["Backlog"]
+    dashboard["Dashboard"]
+    lineage["Data lineage"]
+    catalog["Rules catalog"]
+    fixes["Automated fixes"]
+    otherLoaders["Loaders other than CSV"]
+    dashboard ~~~ lineage ~~~ catalog ~~~ fixes ~~~ otherLoaders
+  end
+  shipped -.->|"left out on purpose"| backlog
+```
+
+Items in a row are peers. The dotted link uses the same words as the list above. Data lineage and the rules catalog are in the backlog group. The diagram has no dates.
 
 ## Checks
 
