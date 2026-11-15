@@ -18,6 +18,7 @@ from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 
 from governance_sentinel import __version__
+from governance_sentinel.history import RunComparison
 from governance_sentinel.lineage import LineageReport
 from governance_sentinel.models import FairnessResult, RuleResult
 from governance_sentinel.rules import dimension_rollup
@@ -43,6 +44,7 @@ def create_pdf_report(
     output_path: str = "Audit_Report.pdf",
     dataset_name: str = "",
     lineage: LineageReport | None = None,
+    trend: RunComparison | None = None,
 ) -> None:
     """Write the audit PDF to ``output_path``.
 
@@ -181,6 +183,9 @@ def create_pdf_report(
     if lineage is not None:
         _write_lineage(pdf, lineage, next_section)
         next_section += 1
+    if trend is not None and trend.previous_run_id is not None:
+        _write_trend(pdf, trend, next_section)
+        next_section += 1
 
     _font(pdf, 13, "B")
     _line(pdf, f"{next_section}. Algorithmic fairness (disparate impact)", 7)
@@ -284,6 +289,56 @@ def _write_lineage(pdf: FPDF, lineage: LineageReport, section: int) -> None:
             f"difference {item.difference:.2f}.",
         )
     pdf.ln(2)
+
+
+def _write_trend(pdf: FPDF, trend: RunComparison, section: int) -> None:
+    """Short comparison with the previous stored run. Omitted when there is none."""
+    _font(pdf, 13, "B")
+    _line(pdf, f"{section}. Trend versus the previous run", 7)
+    _font(pdf, 9)
+    previous_overall = trend.previous_overall
+    if previous_overall is None:
+        return
+    _paragraph(
+        pdf,
+        f"Compared with run {trend.previous_run_id}. "
+        f"Overall score {trend.overall_score:.2f} versus {previous_overall:.2f} "
+        f"(delta {_signed(trend.overall_delta)} percentage points). "
+        "The overall score is the unweighted mean of the measured principle "
+        "scores for principles 2, 3, 4, 5, 6, and 7. Principle 11 is not "
+        "measured and is excluded. A principle score is the control in this "
+        "prototype. It is not compliance with the principle.",
+    )
+    for item in trend.principles:
+        if item.current is None:
+            _paragraph(pdf, f"P{item.principle} {item.title}: not measured.")
+            continue
+        if item.previous is None or item.delta is None:
+            _paragraph(pdf, f"P{item.principle} {item.title}: {item.current:.2f}.")
+            continue
+        _paragraph(
+            pdf,
+            f"P{item.principle} {item.title}: {item.current:.2f} versus "
+            f"{item.previous:.2f} (delta {_signed(item.delta)}). "
+            f"Status {item.previous_status} to {item.current_status}.",
+        )
+    if trend.rule_changes:
+        changed = ", ".join(
+            f"{item.rule_id} {item.previous_status} to {item.current_status}"
+            for item in trend.rule_changes
+        )
+        _paragraph(pdf, f"Rules that changed status: {changed}.")
+    else:
+        _paragraph(pdf, "No rule changed status versus the previous run.")
+    pdf.ln(2)
+
+
+def _signed(value: float | None) -> str:
+    if value is None:
+        return "n/a"
+    if value > 0:
+        return f"+{value:.2f}"
+    return f"{value:.2f}"
 
 
 def _fairness_status(fairness: FairnessResult) -> str:

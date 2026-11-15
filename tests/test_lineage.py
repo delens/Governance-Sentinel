@@ -106,7 +106,7 @@ def test_mermaid_and_networkx_come_from_the_metadata() -> None:
     assert "risk_mart.exposure_by_entity" in report.mermaid
     assert "NOT_MEASURED" in report.mermaid
     assert report.statuses["agg_exposure"] == "FAIL"
-    summed = [item for item in report.column_flows if item.transform == "sum"]
+    summed = [item for item in report.column_flows if item.transform == "aggregation"]
     assert [item.column for item in summed] == ["exposure_amount"]
 
     graph = lineage_graph(report.statuses)

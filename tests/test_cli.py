@@ -124,6 +124,7 @@ def test_module_audit_writes_a_pdf(tmp_path: Path) -> None:
             str(output),
             "--log-file",
             str(tmp_path / "module.log"),
+            "--no-history",
         ],
         cwd=REPO,
         capture_output=True,
@@ -161,6 +162,92 @@ def test_module_generate_writes_the_extract(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr + result.stdout
     assert output.is_file()
     assert "Wrote 40 rows" in result.stdout
+
+
+def test_no_history_skips_the_database(tmp_path: Path) -> None:
+    result = _run(tmp_path, "--rows", "40", "--no-history", "--output", str(tmp_path / "skip.pdf"))
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert "History persistence skipped." in result.stdout
+    assert not (tmp_path / "history" / "governance_history.duckdb").exists()
+    assert "Trend versus the previous run" not in _text(tmp_path / "skip.pdf")
+
+
+def test_second_audit_pdf_includes_the_trend(tmp_path: Path) -> None:
+    database = tmp_path / "history.duckdb"
+    first = _run(
+        tmp_path,
+        "--rows",
+        "40",
+        "--history-db",
+        str(database),
+        "--output",
+        str(tmp_path / "first.pdf"),
+    )
+    assert first.returncode == 0, first.stderr + first.stdout
+    assert "Trend versus the previous run" not in _text(tmp_path / "first.pdf")
+    second = _run(
+        tmp_path,
+        "--rows",
+        "40",
+        "--seed",
+        "240",
+        "--history-db",
+        str(database),
+        "--output",
+        str(tmp_path / "second.pdf"),
+    )
+    assert second.returncode == 0, second.stderr + second.stdout
+    assert "Trend versus the previous run" in _text(tmp_path / "second.pdf")
+    assert "Principle 11 is not" in _text(tmp_path / "second.pdf")
+    listed = subprocess.run(
+        [sys.executable, "-m", "governance_sentinel", "history", "--db", str(database)],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert listed.returncode == 0, listed.stderr + listed.stdout
+    assert "runs 2" in listed.stdout
+    assert "principle scores" in listed.stdout
+    assert "not measured" in listed.stdout
+
+
+def test_seed_history_command_is_deterministic(tmp_path: Path) -> None:
+    first_db = tmp_path / "one.duckdb"
+    second_db = tmp_path / "two.duckdb"
+    command = [
+        sys.executable,
+        "-m",
+        "governance_sentinel",
+        "seed-history",
+        "--weeks",
+        "2",
+        "--rows",
+        "40",
+        "--rules",
+        str(REPO / "rules" / "dq_rules.yml"),
+    ]
+    first = subprocess.run(
+        [*command, "--db", str(first_db)],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    second = subprocess.run(
+        [*command, "--db", str(second_db)],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert first.returncode == 0, first.stderr + first.stdout
+    assert second.returncode == 0, second.stderr + second.stdout
+    assert "Seeded 2 runs" in first.stdout
+    assert (
+        first.stdout.split("Seeded 2 runs into", maxsplit=1)[1].split("\n", maxsplit=1)[1]
+        == (second.stdout.split("Seeded 2 runs into", maxsplit=1)[1].split("\n", maxsplit=1)[1])
+    )
 
 
 def test_import_does_not_set_tensorflow_log_level() -> None:
