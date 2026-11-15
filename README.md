@@ -1,8 +1,10 @@
 # Governance-Sentinel
 
 [![CI](https://github.com/delens/Governance-Sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/delens/Governance-Sentinel/actions/workflows/ci.yml)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB)](https://www.python.org/downloads/release/python-3120/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A compliance-as-code prototype for a data-governance review: declarative data-quality rules on a seeded book of risk transactions, mapped to BCBS 239, with a business glossary, technical lineage, a transaction-to-aggregate reconciliation, a disparate-impact illustration, a PDF, and a Streamlit scorecard.
+A compliance-as-code prototype for a data-governance review: declarative data-quality rules on a seeded book of risk transactions, mapped to BCBS 239, with a business glossary, technical and column lineage, a transaction-to-aggregate reconciliation, a local history of principle scores, a disparate-impact illustration, a PDF, and a Streamlit scorecard.
 
 **Notice.** Personal research sandbox. The data is synthetic. This project is not affiliated with any employer, client, or production system. The full notice is at the end of this file.
 
@@ -20,11 +22,16 @@ python -m governance_sentinel audit --input data/sample_transactions.csv --rules
 
 | Command | What it writes |
 | --- | --- |
-| `python main.py` | `data/generated_transactions.csv`, `Audit_Report.pdf`, `lineage.mmd`, `lineage.json`, `openlineage.json`, `glossary.json`, `glossary.csv`, `reconciliation.csv`, `governance_sentinel.log` |
+| `python main.py` | `data/generated_transactions.csv`, `Audit_Report.pdf`, `lineage.mmd`, `lineage.json`, `openlineage.json`, `column_lineage.json`, `column_lineage.csv`, `glossary.json`, `glossary.csv`, `reconciliation.csv`, `history/governance_history.duckdb`, `governance_sentinel.log` |
 | `python -m governance_sentinel generate --rows 4000 --seed 239 --out data/generated_transactions.csv` | A seeded extract and a copy of the counterparty master. No audit. |
 | `python main.py --mode real --csv data/sample_transactions.csv` | Reads a CSV. It does not regenerate it. |
+| `python -m governance_sentinel seed-history` | Twelve weekly runs in the DuckDB file. Defect scale and the reconciliation break change by week. The run ids and timestamps are fixed. |
+| `python -m governance_sentinel history` | The stored runs, the principle-score matrix, and the latest delta. |
+| `python main.py --no-history` | The same audit, without writing the database. |
 
-`--log-level` sets the root logger (default `INFO`, or the `LOG_LEVEL` environment variable).
+`--history-db` changes the DuckDB path (default `history/governance_history.duckdb`). The database is gitignored. DuckDB is one local file and the history is a small analytical table, scores by principle over time, so the queries are SQL. SQLite would avoid a new dependency. DuckDB is pinned in `requirements.txt` and there is no server. `--log-level` sets the root logger (default `INFO`, or the `LOG_LEVEL` environment variable).
+
+`runs/kpi_demo.json` is the same twelve-week series, committed so the dashboard can chart it before a local database exists. A non-empty database replaces that demo on the Trend page.
 
 ## Dashboard
 
@@ -34,7 +41,7 @@ The scorecard, the trend, the lineage graph, the glossary, the fairness result, 
 streamlit run streamlit_app.py
 ```
 
-The app opens on the committed 150-row sample and the six-point history in `runs/history.jsonl`. It does not need an API key.
+The app opens on the committed 150-row sample, the six-point history in `runs/history.jsonl`, and the twelve-week principle series in `runs/kpi_demo.json`. It does not need an API key.
 
 Streamlit Community Cloud can run this repository as it is:
 
@@ -58,7 +65,7 @@ This repository does not deploy the app and does not create an account.
 
 ![Reconciliation and disparate-impact section](docs/audit_report_reconciliation.png)
 
-`Audit_Report.pdf` in the repository root is the output of `python main.py` (4,000 rows, seed 239). A later run overwrites it. The PDF carries the run id, the SHA-256 of the input file, the scorecard (rows checked, rows failed, pass percentage, minimum pass percentage, PASS or FAIL), remediation with sample failing ids, the reconciliation, and the fairness result.
+`Audit_Report.pdf` in the repository root is the output of `python main.py` (4,000 rows, seed 239). A later run overwrites it. The PDF carries the run id, the SHA-256 of the input file, the scorecard (rows checked, rows failed, pass percentage, minimum pass percentage, PASS or FAIL), remediation with sample failing ids, the reconciliation, and the fairness result. When the history database already holds an earlier run, the PDF adds a short trend against that run. The first run in an empty database does not.
 
 ## Pipeline
 
@@ -68,7 +75,8 @@ flowchart TD
   load --> rules["Evaluate rules/dq_rules.yml"]
   rules --> fairness["Disparate-impact ratio"]
   fairness --> lineage["Lineage, glossary export, reconciliation"]
-  lineage --> pdf["PDF, Mermaid, OpenLineage JSON"]
+  lineage --> history["DuckDB history, unless --no-history"]
+  history --> pdf["PDF, Mermaid, OpenLineage JSON"]
 ```
 
 A failed rule does not stop the run. A missing file, a missing column, or an empty fairness group does. `main` logs the traceback and exits 1.
@@ -143,7 +151,29 @@ flowchart LR
 
 `docs/lineage.mmd` is that picture, generated from the metadata for the committed sample. A test checks that the file matches the generator. The source node is `NOT_MEASURED`: this prototype does not have a separate booking extract. Rules run on the staged CSV. The aggregate inherits a staging FAIL, and it also FAILs when the reconciliation FAILs. `networkx` builds the same directed graph for the dashboard.
 
-Column flow: every staged column is a copy of the source column. The aggregate keeps `legal_entity_id`, `currency`, and `reporting_date` as group keys and sums `exposure_amount`.
+Column flow, declared in `governance_sentinel/column_lineage.py` and drawn in [docs/column_lineage.mmd](docs/column_lineage.mmd):
+
+- `direct`: a staged column copied from the booking extract, and the aggregate group keys `legal_entity_id`, `currency`, and `reporting_date`.
+- `derivation`: `age_band` is the label of `age_category` (1 is `40_and_over`, 2 is `under_40`). It is produced at staging. The logical booking extract does not carry `age_band`.
+- `aggregation`: the aggregate `exposure_amount` is the sum of the staged amount by legal entity, currency, and reporting date.
+- `filter`: rows with a null `exposure_amount` are excluded before that sum.
+
+The booking extract is not a second file. The source node is the declared origin of the staged CSV. Each edge records the glossary terms whose physical column is either end of the edge, so a term can be walked from the extract to the aggregate. Columns with no term, including `record_id` and the fairness fields, stay unlinked. `column_lineage.json` and `column_lineage.csv` are written next to the glossary export.
+
+```mermaid
+flowchart LR
+  src_exposure_amount["core_banking.transactions.exposure_amount"]
+  stg_exposure_amount["staging.risk_transactions.exposure_amount"]
+  src_age_category["core_banking.transactions.age_category"]
+  stg_age_band["staging.risk_transactions.age_band"]
+  agg_exposure_amount["risk_mart.exposure_by_entity.exposure_amount"]
+  src_exposure_amount -->|"direct"| stg_exposure_amount
+  src_age_category -->|"derivation"| stg_age_band
+  stg_exposure_amount -->|"aggregation"| agg_exposure_amount
+  stg_exposure_amount -->|"filter"| agg_exposure_amount
+```
+
+`openlineage.json` puts that mapping in the `columnLineage` dataset facet. A direct copy is OpenLineage type `DIRECT`. Aggregation, derivation, and filter are type `INDIRECT`, with the word kept in `subtype` and `description`. Inputs and outputs also carry a `schema` facet. The same event fills `dataQualityMetrics` (null count, count, distinct count, and sum/min/max on exposure) and `dataQualityAssertions` (one assertion per rule). It is still one COMPLETE document. It is not a Marquez client and it does not talk to a server.
 
 The reconciliation supports:
 
@@ -154,8 +184,6 @@ The reconciliation supports:
 Principle 2, footnote 16, is about automated reconciliation where more than one data model is in use. The check here is one transaction extract against one aggregate. That is the Principle 3 / Principle 7 case, not that footnote.
 
 `catalog/glossary.yml` links each business term to a CDE, a physical column, the DQ rules, and an owner. A term that cites a missing rule or a missing column is rejected at load. Each run writes `glossary.json` and `glossary.csv`.
-
-`openlineage.json` is one COMPLETE event. It fills `dataQualityMetrics` (null count, count, distinct count, and sum/min/max on exposure) and `dataQualityAssertions` (one assertion per rule). It is a minimal document in the shape of the public OpenLineage facets. It is not a Marquez client and it does not talk to a server.
 
 ## Disparate impact
 
@@ -185,7 +213,9 @@ A pass on a rule is the field check. It is narrower than the principle it suppor
 | 5 Timeliness | 44-47 | Business-day lag from reporting date to availability date. The deadline is the demo's, not the Committee's |
 | 6 Adaptability | 49(a) only | One aggregate grain. Not paragraph 50 |
 | 7 Accuracy | 53(a) and the idea of 53(b) | The tie-out, and the rule inventory as a validation list. Not a board report |
-| 11 Distribution | 72-73 | Not implemented |
+| 11 Distribution | 72-73 | Not implemented. The history store records it as not measured |
+
+The history store scores principles 2, 3, 4, and 5 as the mean pass percentage of the rules that cite them. A high mean can sit next to a failed rule, and the status follows the failed rule. Principle 6 is stored as 100 because the one grain exists. Paragraph 50 is not in that score, so it does not move when the data changes. Principle 7 is the share of reconciliation slices inside the 0.1 percent tolerance. One failed slice still fails the reconciliation. Principle 11 has no score. The overall score is the unweighted mean of principles 2, 3, 4, 5, 6, and 7. None of these figures is a finding that the principle is met.
 
 ```mermaid
 flowchart TB
@@ -215,6 +245,7 @@ flowchart LR
   synthetic["governance_sentinel.synthetic"]
   rulesPy["governance_sentinel.rules"]
   lineagePy["governance_sentinel.lineage"]
+  historyPy["governance_sentinel.history"]
   catalogPy["governance_sentinel.catalog"]
   biasPy["bias_audit.py"]
   reporterPy["reporter.py"]
@@ -222,15 +253,17 @@ flowchart LR
 
   mainPy --> pipeline
   cli --> pipeline
+  cli --> historyPy
   pipeline --> synthetic
   pipeline --> rulesPy
   pipeline --> lineagePy
+  pipeline --> historyPy
   pipeline --> catalogPy
   pipeline --> biasPy
   pipeline --> reporterPy
-  app --> synthetic
   app --> rulesPy
   app --> lineagePy
+  app --> historyPy
   app --> catalogPy
   app --> biasPy
 ```
@@ -239,7 +272,7 @@ flowchart LR
 
 ## Roadmap
 
-Shipped: the seeded book and its defect manifest, the YAML rules including referential, T+1, and the IQR screen, the PDF scorecard, the glossary, lineage with downstream status, the reconciliation, a minimal OpenLineage event, the disparate-impact audit, the CLI, and the Streamlit app.
+Shipped: the seeded book and its defect manifest, the YAML rules including referential, T+1, and the IQR screen, the PDF scorecard, the glossary, dataset and column lineage, the reconciliation, one OpenLineage COMPLETE event with schema and columnLineage facets, a DuckDB history of principle scores, the disparate-impact audit, the CLI, and the Streamlit app.
 
 Still out, on purpose: automated fixes, a loader other than CSV, a running OpenLineage or Marquez server, an on-demand aggregate for a supervisory query (Principle 6, paragraph 50), a board risk report (the rest of Principle 7), and distribution controls (Principle 11).
 
@@ -248,9 +281,9 @@ flowchart TB
   subgraph shipped ["In the repository"]
     book["Seeded risk book"]
     yamlRules["YAML rules and thresholds"]
-    lineageBox["Lineage, glossary, reconciliation"]
-    pdfBox["PDF and OpenLineage JSON"]
-    dashboard["Streamlit scorecard"]
+    lineageBox["Lineage, glossary, column lineage"]
+    pdfBox["PDF, history, OpenLineage JSON"]
+    dashboard["Streamlit scorecard and trend"]
   end
   subgraph backlog ["Backlog"]
     fixes["Automated fixes"]
@@ -276,37 +309,9 @@ GitHub Actions runs those commands on Python 3.12 (`.github/workflows/ci.yml`).
 
 ## Changelog
 
-### [2.0.0]
+The version in the code is 2.0.0. The history is in [CHANGELOG.md](CHANGELOG.md). No git tag has been created for it.
 
-#### Added
-
-- Seeded risk-transaction generator, a 150-row committed sample, and a counterparty master. Defect rates are documented and tested.
-- YAML rules with rows checked, rows failed, pass percentage, threshold, PASS or FAIL, and sample failing ids.
-- Referential orphan check, business-day T+1 timeliness check, and an interquartile-range outlier screen.
-- PDF scorecard, remediation, run id, and SHA-256 of the input file.
-- Business glossary exported as JSON and CSV. Technical lineage from source to staging to aggregate, with status pushed downstream. Mermaid from the metadata, and a networkx graph.
-- Reconciliation of the transaction sum to a reported total, with one injected 250,000 break on LE-UK EUR.
-- One OpenLineage COMPLETE event.
-- `python -m governance_sentinel audit` and `generate`, with `python main.py` kept.
-- Streamlit dashboard and Community Cloud entry instructions.
-- Fairness audit that drops a row only for a missing protected attribute or label, and that raises on an empty group.
-
-#### Changed
-
-- The 0.80 cutoff is described as the US EEOC four-fifths heuristic. It is not presented as an EU requirement.
-- Framework version is 2.0.0.
-
-### [1.2.0] - 2026-10-23
-
-ASCII PDF, corrected BCBS 239 principle numbers, UTC timestamps, pytest, and GitHub Actions. The field checks in that release are the four boolean checks that `validators.py` still runs.
-
-### [1.1.0] - 2026-05-24
-
-The audit copies the frame. Nulls fail the check that owns the field. Logging goes to the console and to a file.
-
-### [1.0.0] - 2026-05-01
-
-First data-quality checks, the AIF360 ratio, and a PDF. An early note cited the wrong principle numbers. 1.2.0 corrected them.
+A case study on the synthetic book is in [docs/case-study.md](docs/case-study.md). Notes ready for a GitHub release are in [docs/release-notes-v2.0.0.md](docs/release-notes-v2.0.0.md). This repository does not publish that release.
 
 ## License
 

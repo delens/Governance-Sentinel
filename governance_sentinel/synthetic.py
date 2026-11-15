@@ -22,6 +22,7 @@ project. It is not a threshold in the EU AI Act.
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -201,18 +202,24 @@ def counterparty_reference() -> pd.DataFrame:
 def generate_risk_dataset(
     n: int = DEFAULT_ROWS,
     seed: int = DEFAULT_SEED,
+    defect_rates: Mapping[str, float] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, DefectManifest]:
     """Build transactions, the counterparty master, and the defect manifest.
 
+    ``defect_rates`` replaces individual entries of ``DEFECT_RATES``. Omitted
+    names keep the documented rate. The default audit does not pass this
+    argument.
+
     Raises:
-        ValueError: ``n`` is outside the supported range.
+        ValueError: ``n`` is outside the supported range, or a rate name is unknown.
     """
     if n < MIN_ROWS or n > MAX_ROWS:
         raise ValueError(f"n must be between {MIN_ROWS} and {MAX_ROWS}. Got {n}.")
 
+    rates = _resolve_rates(defect_rates)
     rng = np.random.default_rng(seed)
     reference = counterparty_reference()
-    counts = {name: defect_count(n, rate) for name, rate in DEFECT_RATES.items()}
+    counts = {name: defect_count(n, rate) for name, rate in rates.items()}
 
     pairs = [(entity[0], currency) for entity in LEGAL_ENTITIES for currency in CURRENCIES]
     pair_slots = np.arange(n) % len(pairs)
@@ -358,7 +365,7 @@ def generate_risk_dataset(
     manifest = DefectManifest(
         seed=seed,
         row_count=n,
-        rates=dict(DEFECT_RATES),
+        rates=rates,
         counts=counts,
         record_ids={name: ids_for(indexes) for name, indexes in chosen.items()},
         duplicate_donors=ids_for(duplicate_donors),
@@ -371,9 +378,14 @@ def write_risk_dataset(
     counterparties_path: str | Path,
     n: int = DEFAULT_ROWS,
     seed: int = DEFAULT_SEED,
+    defect_rates: Mapping[str, float] | None = None,
 ) -> DefectManifest:
     """Generate the dataset and write both CSV files. Returns the manifest."""
-    frame, reference, manifest = generate_risk_dataset(n=n, seed=seed)
+    frame, reference, manifest = generate_risk_dataset(
+        n=n,
+        seed=seed,
+        defect_rates=defect_rates,
+    )
     transactions = Path(transactions_path)
     counterparties = Path(counterparties_path)
     transactions.parent.mkdir(parents=True, exist_ok=True)
@@ -381,6 +393,21 @@ def write_risk_dataset(
     frame.to_csv(transactions, index=False)
     reference.to_csv(counterparties, index=False)
     return manifest
+
+
+def _resolve_rates(override: Mapping[str, float] | None) -> dict[str, float]:
+    """Return the defect rates for one extract. Unknown names are rejected."""
+    if override is None:
+        return dict(DEFECT_RATES)
+    unknown = sorted(set(override) - set(DEFECT_RATES))
+    if unknown:
+        raise ValueError(f"Unknown defect rates: {unknown}.")
+    rates = dict(DEFECT_RATES)
+    for name, rate in override.items():
+        if rate < 0:
+            raise ValueError(f"Defect rate {name} must be zero or positive. Got {rate}.")
+        rates[name] = float(rate)
+    return rates
 
 
 def _choose(rng: np.random.Generator, n: int, count: int, blocked: set[int]) -> np.ndarray:

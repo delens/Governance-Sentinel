@@ -13,11 +13,13 @@ import hashlib
 import logging
 import os
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
 
 from governance_sentinel.catalog import export_glossary, load_glossary
+from governance_sentinel.history import DEFAULT_HISTORY_DB, HistoryStore, snapshot_run
 from governance_sentinel.lineage import build_lineage, openlineage_event, write_lineage_artifacts
 from governance_sentinel.rules import evaluate_rules, load_rules
 from governance_sentinel.synthetic import (
@@ -99,6 +101,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"),
         help="Root logger level. Default: INFO, or the LOG_LEVEL environment variable.",
     )
+    parser.add_argument(
+        "--history-db",
+        default=str(DEFAULT_HISTORY_DB),
+        help="DuckDB file that stores this run (default: history/governance_history.duckdb).",
+    )
+    parser.add_argument(
+        "--no-history",
+        action="store_true",
+        help="Do not write this run to the history database.",
+    )
     return parser.parse_args(argv)
 
 
@@ -165,14 +177,36 @@ def execute(args: argparse.Namespace) -> str:
     lineage = build_lineage(loaded, rule_results, inject_break=True)
     event = openlineage_event(run_id, loaded, rule_results)
     output_dir = Path(str(args.output)).resolve().parent
-    write_lineage_artifacts(lineage, event, output_dir)
     glossary = load_glossary(str(args.glossary), ruleset)
     export_glossary(glossary, output_dir / "glossary.json", output_dir / "glossary.csv")
+    write_lineage_artifacts(lineage, event, output_dir, glossary.terms)
     logger.info(
         "Reconciliation %s. Aggregate status %s.",
         lineage.reconciliation.status,
         lineage.statuses["agg_exposure"],
     )
+
+    trend = None
+    if bool(getattr(args, "no_history", False)):
+        logger.info("History persistence skipped.")
+    else:
+        run_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        stored = snapshot_run(
+            run_id=run_id,
+            run_at=run_at,
+            input_sha256=digest,
+            input_name=str(csv_path),
+            row_count=len(loaded),
+            results=rule_results,
+            reconciliation=lineage.reconciliation,
+        )
+        history_path = Path(str(getattr(args, "history_db", DEFAULT_HISTORY_DB)))
+        store = HistoryStore(history_path)
+        store.record(stored)
+        comparison = store.comparison_for(run_id)
+        if comparison is not None and comparison.previous_run_id is not None:
+            trend = comparison
+        logger.info("History stored in %s.", history_path)
 
     logger.info("STEP 5/5 - Writing PDF audit report")
     create_pdf_report(
@@ -184,6 +218,7 @@ def execute(args: argparse.Namespace) -> str:
         output_path=str(args.output),
         dataset_name=str(csv_path),
         lineage=lineage,
+        trend=trend,
     )
     logger.info("Pipeline completed successfully.")
     logger.info("Files: %s | %s", args.output, args.log_file)

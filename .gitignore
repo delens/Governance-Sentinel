@@ -21,4 +21,7 @@ htmlcov/
 # Full synthetic extract written by mock mode. The committed sample is data/sample_transactions.csv.
 data/generated_*.csv
 
+# Local audit history. The committed demo series is runs/kpi_demo.json.
+*.duckdb
+
 .DS_Store

@@ -1,0 +1,2714 @@
+[
+  {
+    "run_id": "f250d679-3b1b-55f5-8bc0-169d9908aacd",
+    "run_at": "2026-06-03T08:00:00Z",
+    "input_sha256": "1f57260d52130f0903d0537b74562ccdc9177290ab529b0f645291521c0f7318",
+    "input_name": "synthetic:seed=239:scale=1.6",
+    "row_count": 800,
+    "overall_score": 98.620812,
+    "rules_passed": 5,
+    "rules_failed": 9,
+    "rules_total": 14,
+    "framework_version": "2.0.0",
+    "principles": [
+      {
+        "principle": "2",
+        "title": "Data architecture and IT infrastructure",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 2."
+      },
+      {
+        "principle": "3",
+        "title": "Accuracy and Integrity",
+        "score": 98.318625,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 3. A high mean can sit next to a failed rule."
+      },
+      {
+        "principle": "4",
+        "title": "Completeness",
+        "score": 98.53125,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 4."
+      },
+      {
+        "principle": "5",
+        "title": "Timeliness",
+        "score": 97.375,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 5. The deadline in those rules is the demo T+1, not a supervisory SLA."
+      },
+      {
+        "principle": "6",
+        "title": "Adaptability",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Paragraph 49(a): one exposure aggregate grain is defined. Paragraph 50 is not scored. The score does not move with data defects."
+      },
+      {
+        "principle": "7",
+        "title": "Accuracy",
+        "score": 97.5,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Share of legal-entity, currency, and reporting-date slices inside the 0.1 percent tolerance. Any failed slice fails the reconciliation. This is not a board risk report."
+      },
+      {
+        "principle": "11",
+        "title": "Distribution",
+        "score": null,
+        "measured": false,
+        "status": "NOT_MEASURED",
+        "basis": "Principle 11 (Distribution) is not implemented. No score is stored."
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "txn_id_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "transaction_id",
+        "records_checked": 800,
+        "records_failed": 13,
+        "pass_pct": 98.375,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "txn_id_unique",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "transaction_id",
+        "records_checked": 787,
+        "records_failed": 10,
+        "pass_pct": 98.729352,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "exposure_amount",
+        "records_checked": 800,
+        "records_failed": 19,
+        "pass_pct": 97.625,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_non_negative",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 781,
+        "records_failed": 13,
+        "pass_pct": 98.335467,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_outlier",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 768,
+        "records_failed": 10,
+        "pass_pct": 98.697917,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "currency_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "currency",
+        "records_checked": 800,
+        "records_failed": 5,
+        "pass_pct": 99.375,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "currency",
+        "records_checked": 795,
+        "records_failed": 15,
+        "pass_pct": 98.113208,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "rating_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "internal_rating",
+        "records_checked": 800,
+        "records_failed": 10,
+        "pass_pct": 98.75,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "rating_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "internal_rating",
+        "records_checked": 790,
+        "records_failed": 13,
+        "pass_pct": 98.35443,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "legal_entity_domain",
+        "principle": "2",
+        "dimension": "validity",
+        "column_name": "legal_entity_id",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "product_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "product_type",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "counterparty_known",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "counterparty_id",
+        "records_checked": 800,
+        "records_failed": 32,
+        "pass_pct": 96.0,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "availability_t_plus_1",
+        "principle": "5",
+        "dimension": "timeliness",
+        "column_name": "availability_date",
+        "records_checked": 800,
+        "records_failed": 42,
+        "pass_pct": 94.75,
+        "threshold": 98.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "reporting_date_populated",
+        "principle": "5",
+        "dimension": "completeness",
+        "column_name": "reporting_date",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      }
+    ]
+  },
+  {
+    "run_id": "5b0450c3-3490-5c44-ac13-a71ee414d155",
+    "run_at": "2026-06-10T08:00:00Z",
+    "input_sha256": "cf39ed3d4e90133c5efa77a1084b3636a24e62279e7e7b9abd087fcfb6b27ff9",
+    "input_name": "synthetic:seed=240:scale=1.4",
+    "row_count": 800,
+    "overall_score": 98.733015,
+    "rules_passed": 5,
+    "rules_failed": 9,
+    "rules_total": 14,
+    "framework_version": "2.0.0",
+    "principles": [
+      {
+        "principle": "2",
+        "title": "Data architecture and IT infrastructure",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 2."
+      },
+      {
+        "principle": "3",
+        "title": "Accuracy and Integrity",
+        "score": 98.555942,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 3. A high mean can sit next to a failed rule."
+      },
+      {
+        "principle": "4",
+        "title": "Completeness",
+        "score": 98.71875,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 4."
+      },
+      {
+        "principle": "5",
+        "title": "Timeliness",
+        "score": 97.6875,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 5. The deadline in those rules is the demo T+1, not a supervisory SLA."
+      },
+      {
+        "principle": "6",
+        "title": "Adaptability",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Paragraph 49(a): one exposure aggregate grain is defined. Paragraph 50 is not scored. The score does not move with data defects."
+      },
+      {
+        "principle": "7",
+        "title": "Accuracy",
+        "score": 97.435897,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Share of legal-entity, currency, and reporting-date slices inside the 0.1 percent tolerance. Any failed slice fails the reconciliation. This is not a board risk report."
+      },
+      {
+        "principle": "11",
+        "title": "Distribution",
+        "score": null,
+        "measured": false,
+        "status": "NOT_MEASURED",
+        "basis": "Principle 11 (Distribution) is not implemented. No score is stored."
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "txn_id_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "transaction_id",
+        "records_checked": 800,
+        "records_failed": 11,
+        "pass_pct": 98.625,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "txn_id_unique",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "transaction_id",
+        "records_checked": 789,
+        "records_failed": 8,
+        "pass_pct": 98.986058,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "exposure_amount",
+        "records_checked": 800,
+        "records_failed": 17,
+        "pass_pct": 97.875,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_non_negative",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 783,
+        "records_failed": 11,
+        "pass_pct": 98.595147,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_outlier",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 772,
+        "records_failed": 9,
+        "pass_pct": 98.834197,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "currency_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "currency",
+        "records_checked": 800,
+        "records_failed": 4,
+        "pass_pct": 99.5,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "currency",
+        "records_checked": 796,
+        "records_failed": 13,
+        "pass_pct": 98.366834,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "rating_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "internal_rating",
+        "records_checked": 800,
+        "records_failed": 9,
+        "pass_pct": 98.875,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "rating_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "internal_rating",
+        "records_checked": 791,
+        "records_failed": 11,
+        "pass_pct": 98.609355,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "legal_entity_domain",
+        "principle": "2",
+        "dimension": "validity",
+        "column_name": "legal_entity_id",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "product_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "product_type",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "counterparty_known",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "counterparty_id",
+        "records_checked": 800,
+        "records_failed": 28,
+        "pass_pct": 96.5,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "availability_t_plus_1",
+        "principle": "5",
+        "dimension": "timeliness",
+        "column_name": "availability_date",
+        "records_checked": 800,
+        "records_failed": 37,
+        "pass_pct": 95.375,
+        "threshold": 98.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "reporting_date_populated",
+        "principle": "5",
+        "dimension": "completeness",
+        "column_name": "reporting_date",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      }
+    ]
+  },
+  {
+    "run_id": "8752f146-4005-52ea-a5b9-6c177b146b53",
+    "run_at": "2026-06-17T08:00:00Z",
+    "input_sha256": "638df59981ec9dc960f3ec1f36ac9277aec985924e628e77d667e94d0b858340",
+    "input_name": "synthetic:seed=241:scale=1.2",
+    "row_count": 800,
+    "overall_score": 98.824236,
+    "rules_passed": 6,
+    "rules_failed": 8,
+    "rules_total": 14,
+    "framework_version": "2.0.0",
+    "principles": [
+      {
+        "principle": "2",
+        "title": "Data architecture and IT infrastructure",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 2."
+      },
+      {
+        "principle": "3",
+        "title": "Accuracy and Integrity",
+        "score": 98.701998,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 3. A high mean can sit next to a failed rule."
+      },
+      {
+        "principle": "4",
+        "title": "Completeness",
+        "score": 98.875,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 4."
+      },
+      {
+        "principle": "5",
+        "title": "Timeliness",
+        "score": 98.0,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 5. The deadline in those rules is the demo T+1, not a supervisory SLA."
+      },
+      {
+        "principle": "6",
+        "title": "Adaptability",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Paragraph 49(a): one exposure aggregate grain is defined. Paragraph 50 is not scored. The score does not move with data defects."
+      },
+      {
+        "principle": "7",
+        "title": "Accuracy",
+        "score": 97.368421,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Share of legal-entity, currency, and reporting-date slices inside the 0.1 percent tolerance. Any failed slice fails the reconciliation. This is not a board risk report."
+      },
+      {
+        "principle": "11",
+        "title": "Distribution",
+        "score": null,
+        "measured": false,
+        "status": "NOT_MEASURED",
+        "basis": "Principle 11 (Distribution) is not implemented. No score is stored."
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "txn_id_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "transaction_id",
+        "records_checked": 800,
+        "records_failed": 10,
+        "pass_pct": 98.75,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "txn_id_unique",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "transaction_id",
+        "records_checked": 790,
+        "records_failed": 8,
+        "pass_pct": 98.987342,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "exposure_amount",
+        "records_checked": 800,
+        "records_failed": 14,
+        "pass_pct": 98.25,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_non_negative",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 786,
+        "records_failed": 10,
+        "pass_pct": 98.727735,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_outlier",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 776,
+        "records_failed": 8,
+        "pass_pct": 98.969072,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "currency_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "currency",
+        "records_checked": 800,
+        "records_failed": 4,
+        "pass_pct": 99.5,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "currency",
+        "records_checked": 796,
+        "records_failed": 12,
+        "pass_pct": 98.492462,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "rating_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "internal_rating",
+        "records_checked": 800,
+        "records_failed": 8,
+        "pass_pct": 99.0,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "internal_rating",
+        "records_checked": 792,
+        "records_failed": 10,
+        "pass_pct": 98.737374,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "legal_entity_domain",
+        "principle": "2",
+        "dimension": "validity",
+        "column_name": "legal_entity_id",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "product_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "product_type",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "counterparty_known",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "counterparty_id",
+        "records_checked": 800,
+        "records_failed": 24,
+        "pass_pct": 97.0,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "availability_t_plus_1",
+        "principle": "5",
+        "dimension": "timeliness",
+        "column_name": "availability_date",
+        "records_checked": 800,
+        "records_failed": 32,
+        "pass_pct": 96.0,
+        "threshold": 98.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "reporting_date_populated",
+        "principle": "5",
+        "dimension": "completeness",
+        "column_name": "reporting_date",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      }
+    ]
+  },
+  {
+    "run_id": "2f85832a-a891-505c-b256-f048365f4e68",
+    "run_at": "2026-06-24T08:00:00Z",
+    "input_sha256": "dac2dcb8e587a9378e98c92733c1757bd240a45abc4f613db040817d3395b152",
+    "input_name": "synthetic:seed=242:scale=1.0",
+    "row_count": 800,
+    "overall_score": 98.965617,
+    "rules_passed": 6,
+    "rules_failed": 8,
+    "rules_total": 14,
+    "framework_version": "2.0.0",
+    "principles": [
+      {
+        "principle": "2",
+        "title": "Data architecture and IT infrastructure",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 2."
+      },
+      {
+        "principle": "3",
+        "title": "Accuracy and Integrity",
+        "score": 98.956529,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 3. A high mean can sit next to a failed rule."
+      },
+      {
+        "principle": "4",
+        "title": "Completeness",
+        "score": 99.09375,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 4."
+      },
+      {
+        "principle": "5",
+        "title": "Timeliness",
+        "score": 98.375,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 5. The deadline in those rules is the demo T+1, not a supervisory SLA."
+      },
+      {
+        "principle": "6",
+        "title": "Adaptability",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Paragraph 49(a): one exposure aggregate grain is defined. Paragraph 50 is not scored. The score does not move with data defects."
+      },
+      {
+        "principle": "7",
+        "title": "Accuracy",
+        "score": 97.368421,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Share of legal-entity, currency, and reporting-date slices inside the 0.1 percent tolerance. Any failed slice fails the reconciliation. This is not a board risk report."
+      },
+      {
+        "principle": "11",
+        "title": "Distribution",
+        "score": null,
+        "measured": false,
+        "status": "NOT_MEASURED",
+        "basis": "Principle 11 (Distribution) is not implemented. No score is stored."
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "txn_id_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "transaction_id",
+        "records_checked": 800,
+        "records_failed": 8,
+        "pass_pct": 99.0,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "txn_id_unique",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "transaction_id",
+        "records_checked": 792,
+        "records_failed": 6,
+        "pass_pct": 99.242424,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "exposure_amount",
+        "records_checked": 800,
+        "records_failed": 12,
+        "pass_pct": 98.5,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_non_negative",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 788,
+        "records_failed": 8,
+        "pass_pct": 98.984772,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_outlier",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 780,
+        "records_failed": 6,
+        "pass_pct": 99.230769,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "currency_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "currency",
+        "records_checked": 800,
+        "records_failed": 3,
+        "pass_pct": 99.625,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "currency",
+        "records_checked": 797,
+        "records_failed": 10,
+        "pass_pct": 98.745295,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "rating_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "internal_rating",
+        "records_checked": 800,
+        "records_failed": 6,
+        "pass_pct": 99.25,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "internal_rating",
+        "records_checked": 794,
+        "records_failed": 8,
+        "pass_pct": 98.992443,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "legal_entity_domain",
+        "principle": "2",
+        "dimension": "validity",
+        "column_name": "legal_entity_id",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "product_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "product_type",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "counterparty_known",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "counterparty_id",
+        "records_checked": 800,
+        "records_failed": 20,
+        "pass_pct": 97.5,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "availability_t_plus_1",
+        "principle": "5",
+        "dimension": "timeliness",
+        "column_name": "availability_date",
+        "records_checked": 800,
+        "records_failed": 26,
+        "pass_pct": 96.75,
+        "threshold": 98.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "reporting_date_populated",
+        "principle": "5",
+        "dimension": "completeness",
+        "column_name": "reporting_date",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      }
+    ]
+  },
+  {
+    "run_id": "907a0d64-f1bc-593d-8151-df70dea75494",
+    "run_at": "2026-07-01T08:00:00Z",
+    "input_sha256": "47a91b793481b20608a63f3bb59372617baefc242e3e432674f025cee46e5dca",
+    "input_name": "synthetic:seed=243:scale=0.8",
+    "row_count": 800,
+    "overall_score": 99.515503,
+    "rules_passed": 7,
+    "rules_failed": 7,
+    "rules_total": 14,
+    "framework_version": "2.0.0",
+    "principles": [
+      {
+        "principle": "2",
+        "title": "Data architecture and IT infrastructure",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 2."
+      },
+      {
+        "principle": "3",
+        "title": "Accuracy and Integrity",
+        "score": 99.155515,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 3. A high mean can sit next to a failed rule."
+      },
+      {
+        "principle": "4",
+        "title": "Completeness",
+        "score": 99.25,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 4."
+      },
+      {
+        "principle": "5",
+        "title": "Timeliness",
+        "score": 98.6875,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 5. The deadline in those rules is the demo T+1, not a supervisory SLA."
+      },
+      {
+        "principle": "6",
+        "title": "Adaptability",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Paragraph 49(a): one exposure aggregate grain is defined. Paragraph 50 is not scored. The score does not move with data defects."
+      },
+      {
+        "principle": "7",
+        "title": "Accuracy",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Share of legal-entity, currency, and reporting-date slices inside the 0.1 percent tolerance. Any failed slice fails the reconciliation. This is not a board risk report."
+      },
+      {
+        "principle": "11",
+        "title": "Distribution",
+        "score": null,
+        "measured": false,
+        "status": "NOT_MEASURED",
+        "basis": "Principle 11 (Distribution) is not implemented. No score is stored."
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "txn_id_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "transaction_id",
+        "records_checked": 800,
+        "records_failed": 6,
+        "pass_pct": 99.25,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "txn_id_unique",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "transaction_id",
+        "records_checked": 794,
+        "records_failed": 6,
+        "pass_pct": 99.244332,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "exposure_amount",
+        "records_checked": 800,
+        "records_failed": 10,
+        "pass_pct": 98.75,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_non_negative",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 790,
+        "records_failed": 6,
+        "pass_pct": 99.240506,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "exposure_outlier",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 784,
+        "records_failed": 5,
+        "pass_pct": 99.362245,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "currency_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "currency",
+        "records_checked": 800,
+        "records_failed": 3,
+        "pass_pct": 99.625,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "currency",
+        "records_checked": 797,
+        "records_failed": 8,
+        "pass_pct": 98.996236,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "rating_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "internal_rating",
+        "records_checked": 800,
+        "records_failed": 5,
+        "pass_pct": 99.375,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "internal_rating",
+        "records_checked": 795,
+        "records_failed": 6,
+        "pass_pct": 99.245283,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "legal_entity_domain",
+        "principle": "2",
+        "dimension": "validity",
+        "column_name": "legal_entity_id",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "product_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "product_type",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "counterparty_known",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "counterparty_id",
+        "records_checked": 800,
+        "records_failed": 16,
+        "pass_pct": 98.0,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "availability_t_plus_1",
+        "principle": "5",
+        "dimension": "timeliness",
+        "column_name": "availability_date",
+        "records_checked": 800,
+        "records_failed": 21,
+        "pass_pct": 97.375,
+        "threshold": 98.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "reporting_date_populated",
+        "principle": "5",
+        "dimension": "completeness",
+        "column_name": "reporting_date",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      }
+    ]
+  },
+  {
+    "run_id": "89c90cc0-d539-52cf-89e8-6653992ecf7e",
+    "run_at": "2026-07-08T08:00:00Z",
+    "input_sha256": "50f2ed5758b17b749cc4ee2aa2e0c7748d2864df4bd4eb1c876c9357e7bd0f89",
+    "input_name": "synthetic:seed=244:scale=0.5",
+    "row_count": 800,
+    "overall_score": 99.696828,
+    "rules_passed": 12,
+    "rules_failed": 2,
+    "rules_total": 14,
+    "framework_version": "2.0.0",
+    "principles": [
+      {
+        "principle": "2",
+        "title": "Data architecture and IT infrastructure",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 2."
+      },
+      {
+        "principle": "3",
+        "title": "Accuracy and Integrity",
+        "score": 99.462216,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 3. A high mean can sit next to a failed rule."
+      },
+      {
+        "principle": "4",
+        "title": "Completeness",
+        "score": 99.53125,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 4."
+      },
+      {
+        "principle": "5",
+        "title": "Timeliness",
+        "score": 99.1875,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 5. The deadline in those rules is the demo T+1, not a supervisory SLA."
+      },
+      {
+        "principle": "6",
+        "title": "Adaptability",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Paragraph 49(a): one exposure aggregate grain is defined. Paragraph 50 is not scored. The score does not move with data defects."
+      },
+      {
+        "principle": "7",
+        "title": "Accuracy",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Share of legal-entity, currency, and reporting-date slices inside the 0.1 percent tolerance. Any failed slice fails the reconciliation. This is not a board risk report."
+      },
+      {
+        "principle": "11",
+        "title": "Distribution",
+        "score": null,
+        "measured": false,
+        "status": "NOT_MEASURED",
+        "basis": "Principle 11 (Distribution) is not implemented. No score is stored."
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "txn_id_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "transaction_id",
+        "records_checked": 800,
+        "records_failed": 4,
+        "pass_pct": 99.5,
+        "threshold": 99.5,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "txn_id_unique",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "transaction_id",
+        "records_checked": 796,
+        "records_failed": 4,
+        "pass_pct": 99.497487,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "exposure_amount",
+        "records_checked": 800,
+        "records_failed": 6,
+        "pass_pct": 99.25,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "exposure_non_negative",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 794,
+        "records_failed": 4,
+        "pass_pct": 99.496222,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "exposure_outlier",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 790,
+        "records_failed": 3,
+        "pass_pct": 99.620253,
+        "threshold": 99.5,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "currency",
+        "records_checked": 800,
+        "records_failed": 2,
+        "pass_pct": 99.75,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "currency",
+        "records_checked": 798,
+        "records_failed": 5,
+        "pass_pct": 99.373434,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "internal_rating",
+        "records_checked": 800,
+        "records_failed": 3,
+        "pass_pct": 99.625,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "internal_rating",
+        "records_checked": 797,
+        "records_failed": 4,
+        "pass_pct": 99.498118,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "legal_entity_domain",
+        "principle": "2",
+        "dimension": "validity",
+        "column_name": "legal_entity_id",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "product_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "product_type",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "counterparty_known",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "counterparty_id",
+        "records_checked": 800,
+        "records_failed": 10,
+        "pass_pct": 98.75,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "availability_t_plus_1",
+        "principle": "5",
+        "dimension": "timeliness",
+        "column_name": "availability_date",
+        "records_checked": 800,
+        "records_failed": 13,
+        "pass_pct": 98.375,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "reporting_date_populated",
+        "principle": "5",
+        "dimension": "completeness",
+        "column_name": "reporting_date",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      }
+    ]
+  },
+  {
+    "run_id": "2937dc5f-25ed-5286-b2e1-c242737baa5f",
+    "run_at": "2026-07-15T08:00:00Z",
+    "input_sha256": "f4e3b50f755e53b9f2e0dcac58c89dd5134367295ae34ab9778aaf3996bfc04d",
+    "input_name": "synthetic:seed=245:scale=0.3",
+    "row_count": 800,
+    "overall_score": 99.81908,
+    "rules_passed": 14,
+    "rules_failed": 0,
+    "rules_total": 14,
+    "framework_version": "2.0.0",
+    "principles": [
+      {
+        "principle": "2",
+        "title": "Data architecture and IT infrastructure",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 2."
+      },
+      {
+        "principle": "3",
+        "title": "Accuracy and Integrity",
+        "score": 99.695733,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 3. A high mean can sit next to a failed rule."
+      },
+      {
+        "principle": "4",
+        "title": "Completeness",
+        "score": 99.71875,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 4."
+      },
+      {
+        "principle": "5",
+        "title": "Timeliness",
+        "score": 99.5,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 5. The deadline in those rules is the demo T+1, not a supervisory SLA."
+      },
+      {
+        "principle": "6",
+        "title": "Adaptability",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Paragraph 49(a): one exposure aggregate grain is defined. Paragraph 50 is not scored. The score does not move with data defects."
+      },
+      {
+        "principle": "7",
+        "title": "Accuracy",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Share of legal-entity, currency, and reporting-date slices inside the 0.1 percent tolerance. Any failed slice fails the reconciliation. This is not a board risk report."
+      },
+      {
+        "principle": "11",
+        "title": "Distribution",
+        "score": null,
+        "measured": false,
+        "status": "NOT_MEASURED",
+        "basis": "Principle 11 (Distribution) is not implemented. No score is stored."
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "txn_id_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "transaction_id",
+        "records_checked": 800,
+        "records_failed": 2,
+        "pass_pct": 99.75,
+        "threshold": 99.5,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "txn_id_unique",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "transaction_id",
+        "records_checked": 798,
+        "records_failed": 2,
+        "pass_pct": 99.749373,
+        "threshold": 99.5,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "exposure_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "exposure_amount",
+        "records_checked": 800,
+        "records_failed": 4,
+        "pass_pct": 99.5,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "exposure_non_negative",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 796,
+        "records_failed": 2,
+        "pass_pct": 99.748744,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "exposure_outlier",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 794,
+        "records_failed": 2,
+        "pass_pct": 99.748111,
+        "threshold": 99.5,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "currency",
+        "records_checked": 800,
+        "records_failed": 1,
+        "pass_pct": 99.875,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "currency",
+        "records_checked": 799,
+        "records_failed": 3,
+        "pass_pct": 99.624531,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "internal_rating",
+        "records_checked": 800,
+        "records_failed": 2,
+        "pass_pct": 99.75,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "internal_rating",
+        "records_checked": 798,
+        "records_failed": 2,
+        "pass_pct": 99.749373,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "legal_entity_domain",
+        "principle": "2",
+        "dimension": "validity",
+        "column_name": "legal_entity_id",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "product_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "product_type",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "counterparty_known",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "counterparty_id",
+        "records_checked": 800,
+        "records_failed": 6,
+        "pass_pct": 99.25,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "availability_t_plus_1",
+        "principle": "5",
+        "dimension": "timeliness",
+        "column_name": "availability_date",
+        "records_checked": 800,
+        "records_failed": 8,
+        "pass_pct": 99.0,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "reporting_date_populated",
+        "principle": "5",
+        "dimension": "completeness",
+        "column_name": "reporting_date",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      }
+    ]
+  },
+  {
+    "run_id": "b8a09fd4-c00f-5de0-bfec-aa370b9149a6",
+    "run_at": "2026-07-22T08:00:00Z",
+    "input_sha256": "4803fb9fbb31fad36b52f603816f6dbd8002293c0fb5e509d3aeaf888b9d7781",
+    "input_name": "synthetic:seed=246:scale=0.45",
+    "row_count": 800,
+    "overall_score": 99.729645,
+    "rules_passed": 13,
+    "rules_failed": 1,
+    "rules_total": 14,
+    "framework_version": "2.0.0",
+    "principles": [
+      {
+        "principle": "2",
+        "title": "Data architecture and IT infrastructure",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 2."
+      },
+      {
+        "principle": "3",
+        "title": "Accuracy and Integrity",
+        "score": 99.534118,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 3. A high mean can sit next to a failed rule."
+      },
+      {
+        "principle": "4",
+        "title": "Completeness",
+        "score": 99.59375,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 4."
+      },
+      {
+        "principle": "5",
+        "title": "Timeliness",
+        "score": 99.25,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 5. The deadline in those rules is the demo T+1, not a supervisory SLA."
+      },
+      {
+        "principle": "6",
+        "title": "Adaptability",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Paragraph 49(a): one exposure aggregate grain is defined. Paragraph 50 is not scored. The score does not move with data defects."
+      },
+      {
+        "principle": "7",
+        "title": "Accuracy",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Share of legal-entity, currency, and reporting-date slices inside the 0.1 percent tolerance. Any failed slice fails the reconciliation. This is not a board risk report."
+      },
+      {
+        "principle": "11",
+        "title": "Distribution",
+        "score": null,
+        "measured": false,
+        "status": "NOT_MEASURED",
+        "basis": "Principle 11 (Distribution) is not implemented. No score is stored."
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "txn_id_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "transaction_id",
+        "records_checked": 800,
+        "records_failed": 4,
+        "pass_pct": 99.5,
+        "threshold": 99.5,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "txn_id_unique",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "transaction_id",
+        "records_checked": 796,
+        "records_failed": 2,
+        "pass_pct": 99.748744,
+        "threshold": 99.5,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "exposure_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "exposure_amount",
+        "records_checked": 800,
+        "records_failed": 5,
+        "pass_pct": 99.375,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "exposure_non_negative",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 795,
+        "records_failed": 4,
+        "pass_pct": 99.496855,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "exposure_outlier",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 791,
+        "records_failed": 3,
+        "pass_pct": 99.620733,
+        "threshold": 99.5,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "currency",
+        "records_checked": 800,
+        "records_failed": 1,
+        "pass_pct": 99.875,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "currency",
+        "records_checked": 799,
+        "records_failed": 4,
+        "pass_pct": 99.499374,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "internal_rating",
+        "records_checked": 800,
+        "records_failed": 3,
+        "pass_pct": 99.625,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "internal_rating",
+        "records_checked": 797,
+        "records_failed": 4,
+        "pass_pct": 99.498118,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "legal_entity_domain",
+        "principle": "2",
+        "dimension": "validity",
+        "column_name": "legal_entity_id",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "product_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "product_type",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "counterparty_known",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "counterparty_id",
+        "records_checked": 800,
+        "records_failed": 9,
+        "pass_pct": 98.875,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "availability_t_plus_1",
+        "principle": "5",
+        "dimension": "timeliness",
+        "column_name": "availability_date",
+        "records_checked": 800,
+        "records_failed": 12,
+        "pass_pct": 98.5,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "reporting_date_populated",
+        "principle": "5",
+        "dimension": "completeness",
+        "column_name": "reporting_date",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      }
+    ]
+  },
+  {
+    "run_id": "58192f0f-5005-50a9-8570-5994d90b3dce",
+    "run_at": "2026-07-29T08:00:00Z",
+    "input_sha256": "f8eff71814e2929bd39a5def0531d2afc6ced2efe7268643b6a2dac5bcc5ed49",
+    "input_name": "synthetic:seed=247:scale=0.7",
+    "row_count": 800,
+    "overall_score": 99.124818,
+    "rules_passed": 9,
+    "rules_failed": 5,
+    "rules_total": 14,
+    "framework_version": "2.0.0",
+    "principles": [
+      {
+        "principle": "2",
+        "title": "Data architecture and IT infrastructure",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 2."
+      },
+      {
+        "principle": "3",
+        "title": "Accuracy and Integrity",
+        "score": 99.264111,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 3. A high mean can sit next to a failed rule."
+      },
+      {
+        "principle": "4",
+        "title": "Completeness",
+        "score": 99.375,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 4."
+      },
+      {
+        "principle": "5",
+        "title": "Timeliness",
+        "score": 98.8125,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 5. The deadline in those rules is the demo T+1, not a supervisory SLA."
+      },
+      {
+        "principle": "6",
+        "title": "Adaptability",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Paragraph 49(a): one exposure aggregate grain is defined. Paragraph 50 is not scored. The score does not move with data defects."
+      },
+      {
+        "principle": "7",
+        "title": "Accuracy",
+        "score": 97.297297,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Share of legal-entity, currency, and reporting-date slices inside the 0.1 percent tolerance. Any failed slice fails the reconciliation. This is not a board risk report."
+      },
+      {
+        "principle": "11",
+        "title": "Distribution",
+        "score": null,
+        "measured": false,
+        "status": "NOT_MEASURED",
+        "basis": "Principle 11 (Distribution) is not implemented. No score is stored."
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "txn_id_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "transaction_id",
+        "records_checked": 800,
+        "records_failed": 6,
+        "pass_pct": 99.25,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "txn_id_unique",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "transaction_id",
+        "records_checked": 794,
+        "records_failed": 4,
+        "pass_pct": 99.496222,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "exposure_amount",
+        "records_checked": 800,
+        "records_failed": 8,
+        "pass_pct": 99.0,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "exposure_non_negative",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 792,
+        "records_failed": 6,
+        "pass_pct": 99.242424,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "exposure_outlier",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 786,
+        "records_failed": 4,
+        "pass_pct": 99.491094,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "currency_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "currency",
+        "records_checked": 800,
+        "records_failed": 2,
+        "pass_pct": 99.75,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "currency",
+        "records_checked": 798,
+        "records_failed": 7,
+        "pass_pct": 99.122807,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "internal_rating",
+        "records_checked": 800,
+        "records_failed": 4,
+        "pass_pct": 99.5,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "internal_rating",
+        "records_checked": 796,
+        "records_failed": 6,
+        "pass_pct": 99.246231,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "legal_entity_domain",
+        "principle": "2",
+        "dimension": "validity",
+        "column_name": "legal_entity_id",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "product_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "product_type",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "counterparty_known",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "counterparty_id",
+        "records_checked": 800,
+        "records_failed": 14,
+        "pass_pct": 98.25,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "availability_t_plus_1",
+        "principle": "5",
+        "dimension": "timeliness",
+        "column_name": "availability_date",
+        "records_checked": 800,
+        "records_failed": 19,
+        "pass_pct": 97.625,
+        "threshold": 98.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "reporting_date_populated",
+        "principle": "5",
+        "dimension": "completeness",
+        "column_name": "reporting_date",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      }
+    ]
+  },
+  {
+    "run_id": "b06eb187-c0f5-53b7-a6d9-89a04946c713",
+    "run_at": "2026-08-05T08:00:00Z",
+    "input_sha256": "c39f02c9a0935d6714ad7fbbf6676096f5cc2878b1a03d08ff2fba95288a993a",
+    "input_name": "synthetic:seed=248:scale=0.9",
+    "row_count": 800,
+    "overall_score": 99.023169,
+    "rules_passed": 7,
+    "rules_failed": 7,
+    "rules_total": 14,
+    "framework_version": "2.0.0",
+    "principles": [
+      {
+        "principle": "2",
+        "title": "Data architecture and IT infrastructure",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 2."
+      },
+      {
+        "principle": "3",
+        "title": "Accuracy and Integrity",
+        "score": 99.046867,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 3. A high mean can sit next to a failed rule."
+      },
+      {
+        "principle": "4",
+        "title": "Completeness",
+        "score": 99.15625,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 4."
+      },
+      {
+        "principle": "5",
+        "title": "Timeliness",
+        "score": 98.5,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 5. The deadline in those rules is the demo T+1, not a supervisory SLA."
+      },
+      {
+        "principle": "6",
+        "title": "Adaptability",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Paragraph 49(a): one exposure aggregate grain is defined. Paragraph 50 is not scored. The score does not move with data defects."
+      },
+      {
+        "principle": "7",
+        "title": "Accuracy",
+        "score": 97.435897,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Share of legal-entity, currency, and reporting-date slices inside the 0.1 percent tolerance. Any failed slice fails the reconciliation. This is not a board risk report."
+      },
+      {
+        "principle": "11",
+        "title": "Distribution",
+        "score": null,
+        "measured": false,
+        "status": "NOT_MEASURED",
+        "basis": "Principle 11 (Distribution) is not implemented. No score is stored."
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "txn_id_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "transaction_id",
+        "records_checked": 800,
+        "records_failed": 7,
+        "pass_pct": 99.125,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "txn_id_unique",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "transaction_id",
+        "records_checked": 793,
+        "records_failed": 6,
+        "pass_pct": 99.24338,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "exposure_amount",
+        "records_checked": 800,
+        "records_failed": 11,
+        "pass_pct": 98.625,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_non_negative",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 789,
+        "records_failed": 7,
+        "pass_pct": 99.112801,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "exposure_outlier",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 782,
+        "records_failed": 6,
+        "pass_pct": 99.232737,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "currency_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "currency",
+        "records_checked": 800,
+        "records_failed": 3,
+        "pass_pct": 99.625,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "currency",
+        "records_checked": 797,
+        "records_failed": 9,
+        "pass_pct": 98.870765,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "rating_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "internal_rating",
+        "records_checked": 800,
+        "records_failed": 6,
+        "pass_pct": 99.25,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "internal_rating",
+        "records_checked": 794,
+        "records_failed": 7,
+        "pass_pct": 99.118388,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "legal_entity_domain",
+        "principle": "2",
+        "dimension": "validity",
+        "column_name": "legal_entity_id",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "product_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "product_type",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "counterparty_known",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "counterparty_id",
+        "records_checked": 800,
+        "records_failed": 18,
+        "pass_pct": 97.75,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "availability_t_plus_1",
+        "principle": "5",
+        "dimension": "timeliness",
+        "column_name": "availability_date",
+        "records_checked": 800,
+        "records_failed": 24,
+        "pass_pct": 97.0,
+        "threshold": 98.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "reporting_date_populated",
+        "principle": "5",
+        "dimension": "completeness",
+        "column_name": "reporting_date",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      }
+    ]
+  },
+  {
+    "run_id": "fe2d6304-2b86-544a-b5d3-0012f49f33cb",
+    "run_at": "2026-08-12T08:00:00Z",
+    "input_sha256": "16b657df2ec65b8b360bf823dfc39dbe6768b3457965a416d8d7cb154c125036",
+    "input_name": "synthetic:seed=249:scale=1.15",
+    "row_count": 800,
+    "overall_score": 98.848379,
+    "rules_passed": 6,
+    "rules_failed": 8,
+    "rules_total": 14,
+    "framework_version": "2.0.0",
+    "principles": [
+      {
+        "principle": "2",
+        "title": "Data architecture and IT infrastructure",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 2."
+      },
+      {
+        "principle": "3",
+        "title": "Accuracy and Integrity",
+        "score": 98.792978,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 3. A high mean can sit next to a failed rule."
+      },
+      {
+        "principle": "4",
+        "title": "Completeness",
+        "score": 98.9375,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 4."
+      },
+      {
+        "principle": "5",
+        "title": "Timeliness",
+        "score": 98.0625,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 5. The deadline in those rules is the demo T+1, not a supervisory SLA."
+      },
+      {
+        "principle": "6",
+        "title": "Adaptability",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Paragraph 49(a): one exposure aggregate grain is defined. Paragraph 50 is not scored. The score does not move with data defects."
+      },
+      {
+        "principle": "7",
+        "title": "Accuracy",
+        "score": 97.297297,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Share of legal-entity, currency, and reporting-date slices inside the 0.1 percent tolerance. Any failed slice fails the reconciliation. This is not a board risk report."
+      },
+      {
+        "principle": "11",
+        "title": "Distribution",
+        "score": null,
+        "measured": false,
+        "status": "NOT_MEASURED",
+        "basis": "Principle 11 (Distribution) is not implemented. No score is stored."
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "txn_id_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "transaction_id",
+        "records_checked": 800,
+        "records_failed": 9,
+        "pass_pct": 98.875,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "txn_id_unique",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "transaction_id",
+        "records_checked": 791,
+        "records_failed": 8,
+        "pass_pct": 98.988622,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "exposure_amount",
+        "records_checked": 800,
+        "records_failed": 14,
+        "pass_pct": 98.25,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_non_negative",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 786,
+        "records_failed": 9,
+        "pass_pct": 98.854962,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_outlier",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 777,
+        "records_failed": 7,
+        "pass_pct": 99.099099,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "currency_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "currency",
+        "records_checked": 800,
+        "records_failed": 4,
+        "pass_pct": 99.5,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "currency",
+        "records_checked": 796,
+        "records_failed": 11,
+        "pass_pct": 98.61809,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "rating_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "internal_rating",
+        "records_checked": 800,
+        "records_failed": 7,
+        "pass_pct": 99.125,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "rating_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "internal_rating",
+        "records_checked": 793,
+        "records_failed": 9,
+        "pass_pct": 98.865069,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "legal_entity_domain",
+        "principle": "2",
+        "dimension": "validity",
+        "column_name": "legal_entity_id",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "product_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "product_type",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "counterparty_known",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "counterparty_id",
+        "records_checked": 800,
+        "records_failed": 23,
+        "pass_pct": 97.125,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "availability_t_plus_1",
+        "principle": "5",
+        "dimension": "timeliness",
+        "column_name": "availability_date",
+        "records_checked": 800,
+        "records_failed": 31,
+        "pass_pct": 96.125,
+        "threshold": 98.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "reporting_date_populated",
+        "principle": "5",
+        "dimension": "completeness",
+        "column_name": "reporting_date",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      }
+    ]
+  },
+  {
+    "run_id": "baf89426-ba90-52c2-ad00-a89750eeb67c",
+    "run_at": "2026-08-19T08:00:00Z",
+    "input_sha256": "b101a21760acf030d687044039432cfde1357394af03abf5171a3cd194aa79c5",
+    "input_name": "synthetic:seed=250:scale=1.35",
+    "row_count": 800,
+    "overall_score": 98.739011,
+    "rules_passed": 5,
+    "rules_failed": 9,
+    "rules_total": 14,
+    "framework_version": "2.0.0",
+    "principles": [
+      {
+        "principle": "2",
+        "title": "Data architecture and IT infrastructure",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Mean pass percentage of the rules that support Principle 2."
+      },
+      {
+        "principle": "3",
+        "title": "Accuracy and Integrity",
+        "score": 98.57427,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 3. A high mean can sit next to a failed rule."
+      },
+      {
+        "principle": "4",
+        "title": "Completeness",
+        "score": 98.75,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 4."
+      },
+      {
+        "principle": "5",
+        "title": "Timeliness",
+        "score": 97.8125,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Mean pass percentage of the rules that support Principle 5. The deadline in those rules is the demo T+1, not a supervisory SLA."
+      },
+      {
+        "principle": "6",
+        "title": "Adaptability",
+        "score": 100.0,
+        "measured": true,
+        "status": "PASS",
+        "basis": "Paragraph 49(a): one exposure aggregate grain is defined. Paragraph 50 is not scored. The score does not move with data defects."
+      },
+      {
+        "principle": "7",
+        "title": "Accuracy",
+        "score": 97.297297,
+        "measured": true,
+        "status": "FAIL",
+        "basis": "Share of legal-entity, currency, and reporting-date slices inside the 0.1 percent tolerance. Any failed slice fails the reconciliation. This is not a board risk report."
+      },
+      {
+        "principle": "11",
+        "title": "Distribution",
+        "score": null,
+        "measured": false,
+        "status": "NOT_MEASURED",
+        "basis": "Principle 11 (Distribution) is not implemented. No score is stored."
+      }
+    ],
+    "rules": [
+      {
+        "rule_id": "txn_id_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "transaction_id",
+        "records_checked": 800,
+        "records_failed": 11,
+        "pass_pct": 98.625,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "txn_id_unique",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "transaction_id",
+        "records_checked": 789,
+        "records_failed": 8,
+        "pass_pct": 98.986058,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "exposure_amount",
+        "records_checked": 800,
+        "records_failed": 16,
+        "pass_pct": 98.0,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_non_negative",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 784,
+        "records_failed": 11,
+        "pass_pct": 98.596939,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "exposure_outlier",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "exposure_amount",
+        "records_checked": 773,
+        "records_failed": 9,
+        "pass_pct": 98.835705,
+        "threshold": 99.5,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "currency_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "currency",
+        "records_checked": 800,
+        "records_failed": 4,
+        "pass_pct": 99.5,
+        "threshold": 99.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "currency_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "currency",
+        "records_checked": 796,
+        "records_failed": 13,
+        "pass_pct": 98.366834,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "rating_populated",
+        "principle": "4",
+        "dimension": "completeness",
+        "column_name": "internal_rating",
+        "records_checked": 800,
+        "records_failed": 9,
+        "pass_pct": 98.875,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "rating_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "internal_rating",
+        "records_checked": 791,
+        "records_failed": 11,
+        "pass_pct": 98.609355,
+        "threshold": 98.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "legal_entity_domain",
+        "principle": "2",
+        "dimension": "validity",
+        "column_name": "legal_entity_id",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "product_domain",
+        "principle": "3",
+        "dimension": "validity",
+        "column_name": "product_type",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      },
+      {
+        "rule_id": "counterparty_known",
+        "principle": "3",
+        "dimension": "accuracy",
+        "column_name": "counterparty_id",
+        "records_checked": 800,
+        "records_failed": 27,
+        "pass_pct": 96.625,
+        "threshold": 99.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "availability_t_plus_1",
+        "principle": "5",
+        "dimension": "timeliness",
+        "column_name": "availability_date",
+        "records_checked": 800,
+        "records_failed": 35,
+        "pass_pct": 95.625,
+        "threshold": 98.0,
+        "status": "FAIL"
+      },
+      {
+        "rule_id": "reporting_date_populated",
+        "principle": "5",
+        "dimension": "completeness",
+        "column_name": "reporting_date",
+        "records_checked": 800,
+        "records_failed": 0,
+        "pass_pct": 100.0,
+        "threshold": 100.0,
+        "status": "PASS"
+      }
+    ]
+  }
+]

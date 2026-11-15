@@ -1,0 +1,54 @@
+flowchart LR
+  src_record_id["core_banking.transactions.record_id"]
+  stg_record_id["staging.risk_transactions.record_id"]
+  src_transaction_id["core_banking.transactions.transaction_id"]
+  stg_transaction_id["staging.risk_transactions.transaction_id"]
+  src_legal_entity_id["core_banking.transactions.legal_entity_id"]
+  stg_legal_entity_id["staging.risk_transactions.legal_entity_id"]
+  src_legal_entity_name["core_banking.transactions.legal_entity_name"]
+  stg_legal_entity_name["staging.risk_transactions.legal_entity_name"]
+  src_source_system["core_banking.transactions.source_system"]
+  stg_source_system["staging.risk_transactions.source_system"]
+  src_counterparty_id["core_banking.transactions.counterparty_id"]
+  stg_counterparty_id["staging.risk_transactions.counterparty_id"]
+  src_product_type["core_banking.transactions.product_type"]
+  stg_product_type["staging.risk_transactions.product_type"]
+  src_currency["core_banking.transactions.currency"]
+  stg_currency["staging.risk_transactions.currency"]
+  src_exposure_amount["core_banking.transactions.exposure_amount"]
+  stg_exposure_amount["staging.risk_transactions.exposure_amount"]
+  src_internal_rating["core_banking.transactions.internal_rating"]
+  stg_internal_rating["staging.risk_transactions.internal_rating"]
+  src_reporting_date["core_banking.transactions.reporting_date"]
+  stg_reporting_date["staging.risk_transactions.reporting_date"]
+  src_availability_date["core_banking.transactions.availability_date"]
+  stg_availability_date["staging.risk_transactions.availability_date"]
+  src_age_category["core_banking.transactions.age_category"]
+  stg_age_category["staging.risk_transactions.age_category"]
+  src_loan_approved["core_banking.transactions.loan_approved"]
+  stg_loan_approved["staging.risk_transactions.loan_approved"]
+  stg_age_band["staging.risk_transactions.age_band"]
+  agg_legal_entity_id["risk_mart.exposure_by_entity.legal_entity_id"]
+  agg_currency["risk_mart.exposure_by_entity.currency"]
+  agg_reporting_date["risk_mart.exposure_by_entity.reporting_date"]
+  agg_exposure_amount["risk_mart.exposure_by_entity.exposure_amount"]
+  src_record_id -->|"direct"| stg_record_id
+  src_transaction_id -->|"direct"| stg_transaction_id
+  src_legal_entity_id -->|"direct"| stg_legal_entity_id
+  src_legal_entity_name -->|"direct"| stg_legal_entity_name
+  src_source_system -->|"direct"| stg_source_system
+  src_counterparty_id -->|"direct"| stg_counterparty_id
+  src_product_type -->|"direct"| stg_product_type
+  src_currency -->|"direct"| stg_currency
+  src_exposure_amount -->|"direct"| stg_exposure_amount
+  src_internal_rating -->|"direct"| stg_internal_rating
+  src_reporting_date -->|"direct"| stg_reporting_date
+  src_availability_date -->|"direct"| stg_availability_date
+  src_age_category -->|"direct"| stg_age_category
+  src_loan_approved -->|"direct"| stg_loan_approved
+  src_age_category -->|"derivation"| stg_age_band
+  stg_legal_entity_id -->|"direct"| agg_legal_entity_id
+  stg_currency -->|"direct"| agg_currency
+  stg_reporting_date -->|"direct"| agg_reporting_date
+  stg_exposure_amount -->|"aggregation"| agg_exposure_amount
+  stg_exposure_amount -->|"filter"| agg_exposure_amount

@@ -27,8 +27,11 @@ What the control supports, and what it does not:
   one data model is in use. The check here is source transactions against one
   aggregate, which is the Principle 3 / Principle 7 case, not that footnote.
 
-OpenLineage output is a minimal COMPLETE event with the dataset facets this
-run can fill. It is not a Marquez client and it does not talk to a server.
+OpenLineage output is one COMPLETE event. It carries schema facets,
+``columnLineage`` facets, ``dataQualityMetrics``, and ``dataQualityAssertions``.
+It is not a Marquez client and it does not talk to a server. Column edges are
+declared in ``column_lineage``: direct copy, the age-band derivation, the
+exposure sum, and the filter that drops null amounts before that sum.
 """
 
 from __future__ import annotations
@@ -41,6 +44,14 @@ from pathlib import Path
 import networkx as nx
 import pandas as pd
 
+from governance_sentinel.catalog import GlossaryTerm
+from governance_sentinel.column_lineage import (
+    COLUMN_EDGES,
+    PRODUCER,
+    column_lineage_facet,
+    column_lineage_rows,
+    schema_facet,
+)
 from governance_sentinel.models import RuleResult
 
 
@@ -146,33 +157,20 @@ FLOW_EDGES: tuple[tuple[str, str], ...] = (
     ("stg_transactions", "agg_exposure"),
 )
 
-# Staging keeps the transaction columns. The aggregate keeps the grain and the sum.
-_STAGING_COLUMNS: tuple[str, ...] = (
-    "record_id",
-    "transaction_id",
-    "legal_entity_id",
-    "legal_entity_name",
-    "source_system",
-    "counterparty_id",
-    "product_type",
-    "currency",
-    "exposure_amount",
-    "internal_rating",
-    "reporting_date",
-    "availability_date",
-    "age_category",
-    "age_band",
-    "loan_approved",
-)
+_NODE_IDS: dict[str, str] = {
+    "core_banking.transactions": "src_transactions",
+    "staging.risk_transactions": "stg_transactions",
+    "risk_mart.exposure_by_entity": "agg_exposure",
+}
 
 COLUMN_FLOWS: tuple[ColumnFlow, ...] = tuple(
-    ColumnFlow(column, "src_transactions", "stg_transactions", "copy")
-    for column in _STAGING_COLUMNS
-) + (
-    ColumnFlow("legal_entity_id", "stg_transactions", "agg_exposure", "group key"),
-    ColumnFlow("currency", "stg_transactions", "agg_exposure", "group key"),
-    ColumnFlow("reporting_date", "stg_transactions", "agg_exposure", "group key"),
-    ColumnFlow("exposure_amount", "stg_transactions", "agg_exposure", "sum"),
+    ColumnFlow(
+        edge.target_column,
+        _NODE_IDS[edge.source_dataset],
+        _NODE_IDS[edge.target_dataset],
+        edge.transformation,
+    )
+    for edge in COLUMN_EDGES
 )
 
 
@@ -333,15 +331,15 @@ def openlineage_event(
 ) -> dict[str, object]:
     """One COMPLETE event. Facets follow the public OpenLineage dataset shapes.
 
-    ``dataQualityMetrics`` carries null and row counts.
-    ``dataQualityAssertions`` carries one assertion per YAML rule.
-    Schema URLs point at the published facet names. Fields this run does not
-    know are omitted.
+    Inputs carry a schema facet. The staged output also carries
+    ``dataQualityMetrics``, ``dataQualityAssertions``, and ``columnLineage``.
+    The aggregate carries a schema facet and ``columnLineage``.
+    ``columnLineage`` uses ``DIRECT`` for a direct copy and ``INDIRECT`` for
+    aggregation, derivation, and filter. It is not a Marquez client.
     """
     moment = event_time or datetime.now(timezone.utc)
     stamp = moment.astimezone(timezone.utc).isoformat(timespec="milliseconds")
     stamp = stamp.replace("+00:00", "Z")
-    producer = "https://github.com/delens/Governance-Sentinel"
     metrics_schema = "https://openlineage.io/spec/facets/1-0-0/DataQualityMetricsDatasetFacet.json"
     assertions_schema = (
         "https://openlineage.io/spec/facets/1-0-0/DataQualityAssertionsDatasetFacet.json"
@@ -352,21 +350,26 @@ def openlineage_event(
         "run": {"runId": run_id},
         "job": {"namespace": "governance-sentinel", "name": "risk_exposure_audit"},
         "inputs": [
-            {"namespace": "governance-sentinel", "name": "core_banking.transactions"},
-            {"namespace": "governance-sentinel", "name": "reference.counterparties"},
+            _dataset(
+                "core_banking.transactions", {"schema": schema_facet("core_banking.transactions")}
+            ),
+            _dataset(
+                "reference.counterparties", {"schema": schema_facet("reference.counterparties")}
+            ),
         ],
         "outputs": [
-            {
-                "namespace": "governance-sentinel",
-                "name": "staging.risk_transactions",
-                "facets": {
+            _dataset(
+                "staging.risk_transactions",
+                {
+                    "schema": schema_facet("staging.risk_transactions"),
+                    "columnLineage": column_lineage_facet("staging.risk_transactions"),
                     "dataQualityMetrics": {
-                        "_producer": producer,
+                        "_producer": PRODUCER,
                         "_schemaURL": metrics_schema,
                         "columnMetrics": _column_metrics(frame),
                     },
                     "dataQualityAssertions": {
-                        "_producer": producer,
+                        "_producer": PRODUCER,
                         "_schemaURL": assertions_schema,
                         "assertions": [
                             {
@@ -378,12 +381,14 @@ def openlineage_event(
                         ],
                     },
                 },
-            },
-            {
-                "namespace": "governance-sentinel",
-                "name": "risk_mart.exposure_by_entity",
-                "outputFacets": {},
-            },
+            ),
+            _dataset(
+                "risk_mart.exposure_by_entity",
+                {
+                    "schema": schema_facet("risk_mart.exposure_by_entity"),
+                    "columnLineage": column_lineage_facet("risk_mart.exposure_by_entity"),
+                },
+            ),
         ],
     }
 
@@ -392,8 +397,9 @@ def write_lineage_artifacts(
     report: LineageReport,
     event: dict[str, object],
     directory: Path,
+    glossary_terms: tuple[GlossaryTerm, ...] = (),
 ) -> None:
-    """Write the Mermaid picture, the OpenLineage event, and the tie-out."""
+    """Write lineage files, the OpenLineage event, and the column-lineage export."""
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "lineage.mmd").write_text(report.mermaid + "\n", encoding="utf-8")
     (directory / "openlineage.json").write_text(
@@ -454,6 +460,22 @@ def write_lineage_artifacts(
         for item in report.reconciliation.slices
     ]
     pd.DataFrame(recon_rows).to_csv(directory / "reconciliation.csv", index=False)
+    rows = column_lineage_rows(glossary_terms)
+    (directory / "column_lineage.json").write_text(
+        json.dumps(rows, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    flat_rows = [
+        {**row, "glossary_term_ids": "|".join(row["glossary_term_ids"])}
+        if isinstance(row["glossary_term_ids"], list)
+        else row
+        for row in rows
+    ]
+    pd.DataFrame(flat_rows).to_csv(directory / "column_lineage.csv", index=False)
+
+
+def _dataset(name: str, facets: dict[str, object]) -> dict[str, object]:
+    return {"namespace": "governance-sentinel", "name": name, "facets": facets}
 
 
 def _column_metrics(frame: pd.DataFrame) -> dict[str, dict[str, float]]:

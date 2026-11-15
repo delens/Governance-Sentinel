@@ -28,6 +28,18 @@ def test_default_size_is_inside_the_portfolio_band() -> None:
     assert MIN_ROWS <= SAMPLE_ROWS < 1_000
 
 
+def test_defect_rate_override_keeps_the_other_rates() -> None:
+    _frame, _reference, manifest = generate_risk_dataset(
+        n=100,
+        seed=DEFAULT_SEED,
+        defect_rates={"missing_transaction_id": 0.1},
+    )
+    assert manifest.counts["missing_transaction_id"] == 10
+    assert manifest.rates["null_exposure"] == DEFECT_RATES["null_exposure"]
+    with pytest.raises(ValueError, match="Unknown defect"):
+        generate_risk_dataset(n=40, seed=1, defect_rates={"not_a_defect": 0.1})
+
+
 def test_generation_is_reproducible() -> None:
     first, reference, manifest = generate_risk_dataset(n=400, seed=DEFAULT_SEED)
     second, _, _ = generate_risk_dataset(n=400, seed=DEFAULT_SEED)

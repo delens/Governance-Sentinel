@@ -17,6 +17,7 @@ cloudpickle==3.1.2
 contourpy==1.4.0
 cycler==0.12.1
 defusedxml==0.7.1
+duckdb==2.0.0
 fonttools==4.67.0
 fpdf2==2.8.9
 h11==0.16.0

@@ -18,8 +18,14 @@ from governance_sentinel.principles import PRINCIPLE_TITLES
 from governance_sentinel.rules import RuleSet
 from governance_sentinel.synthetic import TRANSACTION_COLUMNS
 
+# age_band is derived at staging from age_category. It is not a column of the
+# logical booking extract. The staged file is the CSV, and it does contain it.
+_SOURCE_COLUMNS: tuple[str, ...] = tuple(
+    column for column in TRANSACTION_COLUMNS if column != "age_band"
+)
+
 DATASET_COLUMNS: dict[str, tuple[str, ...]] = {
-    "core_banking.transactions": TRANSACTION_COLUMNS,
+    "core_banking.transactions": _SOURCE_COLUMNS,
     "staging.risk_transactions": TRANSACTION_COLUMNS,
     "risk_mart.exposure_by_entity": (
         "legal_entity_id",

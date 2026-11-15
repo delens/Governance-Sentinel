@@ -21,6 +21,7 @@ def test_sample_dashboard_has_a_mixed_scorecard() -> None:
     assert data.fairness.privileged_count > 0
     assert len(data.glossary.terms) >= 8
     assert len(data.history) >= 6
+    assert len(data.kpi_runs) == 12
 
 
 def test_committed_lineage_diagram_matches_the_sample() -> None:
@@ -34,3 +35,6 @@ def test_streamlit_app_starts() -> None:
     app.run()
     assert not app.exception
     assert any("Governance-Sentinel" in block.value for block in app.title)
+    for page in ("Trend", "Lineage", "Glossary", "Fairness", "Report"):
+        app.sidebar.radio[0].set_value(page).run()
+        assert not app.exception, page

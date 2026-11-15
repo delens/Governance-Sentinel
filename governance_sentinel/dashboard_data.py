@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from governance_sentinel.catalog import Glossary, load_glossary
-from governance_sentinel.history import read_history
+from governance_sentinel.history import StoredRun, load_kpi_runs, read_history
 from governance_sentinel.lineage import LineageReport, build_lineage
 from governance_sentinel.logging_config import install_optional_extra_filter
 from governance_sentinel.models import FairnessResult, RuleResult
@@ -30,6 +30,7 @@ class DashboardData:
     lineage: LineageReport
     glossary: Glossary
     history: tuple[dict[str, object], ...]
+    kpi_runs: tuple[StoredRun, ...]
     source_name: str
 
 
@@ -57,5 +58,6 @@ def load_dashboard(root: Path) -> DashboardData:
         lineage=lineage,
         glossary=glossary,
         history=history,
+        kpi_runs=load_kpi_runs(root),
         source_name=transactions.name,
     )
