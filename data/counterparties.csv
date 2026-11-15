@@ -1,0 +1,41 @@
+counterparty_id,counterparty_name,country,sector
+CP-001,Northwind Metals SA,FR,Manufacturing
+CP-002,Helvetia Grain AG,CH,Agriculture
+CP-003,Blueharbor Shipping Ltd,UK,Transport
+CP-004,Cinder Rail NV,NL,Transport
+CP-005,Lumen Grid GmbH,DE,Utilities
+CP-006,Sable Chemicals SA,FR,Manufacturing
+CP-007,Redkite Aviation Ltd,UK,Transport
+CP-008,Marrow Steel AG,CH,Manufacturing
+CP-009,Pebble Telecom Pte Ltd,SG,Telecom
+CP-010,Orchard Foods SA,FR,Consumer
+CP-011,Quartz Mining Ltd,UK,Mining
+CP-012,Fjord Timber AS,NO,Manufacturing
+CP-013,Cedar Housing AG,DE,Real estate
+CP-014,Ivy Payments Ltd,UK,Financial
+CP-015,Maple Health Inc,US,Healthcare
+CP-016,Juniper Energy Inc,US,Energy
+CP-017,Coral Ports SA,ES,Transport
+CP-018,Brass Instruments GmbH,DE,Manufacturing
+CP-019,Silverline Retail plc,UK,Consumer
+CP-020,Harbor Mills Inc,US,Manufacturing
+CP-021,Dune Solar SA,ES,Energy
+CP-022,Aster Insurance AG,CH,Financial
+CP-023,Kite Logistics BV,NL,Transport
+CP-024,Nimbus Software Pte Ltd,SG,Technology
+CP-025,Copperline Cable SA,FR,Telecom
+CP-026,Willow Paper AB,SE,Manufacturing
+CP-027,Granite Works Ltd,UK,Construction
+CP-028,Poppy Pharma AG,CH,Healthcare
+CP-029,Elm Water GmbH,DE,Utilities
+CP-030,Sparrow Airlines Ltd,IE,Transport
+CP-031,Boreal Fish AS,NO,Agriculture
+CP-032,Topaz Hotels SA,FR,Consumer
+CP-033,Rivet Auto AG,DE,Manufacturing
+CP-034,Lantern Media Ltd,UK,Consumer
+CP-035,Moss Cement SpA,IT,Construction
+CP-036,Peak Alloys Inc,US,Manufacturing
+CP-037,Yarrow Textiles SA,PT,Manufacturing
+CP-038,Flint Glass GmbH,DE,Manufacturing
+CP-039,Oakland Stores Inc,US,Consumer
+CP-040,Vesper Leasing Ltd,UK,Financial
