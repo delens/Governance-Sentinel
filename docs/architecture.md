@@ -1,91 +1,97 @@
 # Architecture
 
-Module map for the code in this repository. The pipeline diagram and the roadmap diagram are in the [README](../README.md#pipeline).
+Module map for the code in this repository. The pipeline diagram and the roadmap are in the [README](../README.md).
 
-`main.py` is the orchestrator. The other modules do not call each other, except `reporter.py`, which reads the principle map and the check thresholds from `validators.py`.
+`python main.py` and `python -m governance_sentinel audit` both call `governance_sentinel.pipeline.execute`. The Streamlit entry point is `streamlit_app.py`. It loads the committed sample through `governance_sentinel.dashboard_data` and does not start the command-line pipeline.
 
 ```mermaid
 flowchart LR
   mainPy["main.py"]
-  dataLoader["data_loader.py"]
-  validatorsPy["validators.py"]
+  cli["governance_sentinel.cli"]
+  pipeline["pipeline.execute"]
+  synthetic["synthetic.py"]
+  rulesPy["rules.py"]
+  lineagePy["lineage.py"]
+  catalogPy["catalog.py"]
   biasPy["bias_audit.py"]
   reporterPy["reporter.py"]
-  csvFile["CSV file"]
-  pdfFile["PDF report"]
-  logFile["Log file"]
+  app["streamlit_app.py"]
 
-  mainPy -->|"generate_mock_data"| dataLoader
-  mainPy -->|"run_bcbs239_audit"| validatorsPy
-  mainPy -->|"run_fairness_audit"| biasPy
-  mainPy -->|"create_pdf_report"| reporterPy
-  reporterPy -->|"DQ_DIMENSIONS and thresholds"| validatorsPy
-  dataLoader -->|"mock writes, real reads"| csvFile
-  reporterPy -->|"writes"| pdfFile
-  mainPy -->|"stdout and file"| logFile
+  mainPy --> pipeline
+  cli --> pipeline
+  pipeline --> synthetic
+  pipeline --> rulesPy
+  pipeline --> lineagePy
+  pipeline --> catalogPy
+  pipeline --> biasPy
+  pipeline --> reporterPy
+  app --> rulesPy
+  app --> lineagePy
+  app --> catalogPy
+  app --> biasPy
 ```
 
-| Module | Call from `main` | Result |
-| --- | --- | --- |
-| `main.py` | `main` | Four steps. Logs to stdout and the log file. |
-| `data_loader.py` | `generate_mock_data` | A DataFrame. Mock mode also writes the CSV. |
-| `validators.py` | `run_bcbs239_audit` | Four booleans: Completeness, Accuracy, Validity, Timeliness. |
-| `bias_audit.py` | `run_fairness_audit` | One float, from AIF360 `BinaryLabelDatasetMetric.disparate_impact`. |
-| `reporter.py` | `create_pdf_report` | Writes the PDF. `FRAMEWORK_VERSION` is `1.2.0`. |
+| Module | Role |
+| --- | --- |
+| `main.py` | `python main.py`. Logging, then the pipeline. |
+| `governance_sentinel/cli.py` | `audit` and `generate`. |
+| `governance_sentinel/pipeline.py` | Load, rules, fairness, lineage, glossary export, PDF. |
+| `governance_sentinel/synthetic.py` | Seeded extract and the counterparty master. |
+| `governance_sentinel/rules.py` | Load `rules/dq_rules.yml` and evaluate it. |
+| `governance_sentinel/lineage.py` | Aggregate, reconciliation, status propagation, Mermaid, networkx, OpenLineage event. |
+| `governance_sentinel/catalog.py` | Glossary load and JSON/CSV export. |
+| `bias_audit.py` | Disparate-impact ratio through AIF360. |
+| `reporter.py` | PDF. `FRAMEWORK_VERSION` is the package version, 2.0.0. |
+| `validators.py` | Original four boolean field checks. Not called by the pipeline. |
+| `data_loader.py` | Original five-row mock file. Not called by the pipeline. |
+| `streamlit_app.py` | Dashboard. Community Cloud entry file. |
 
-`bias_audit.py` is imported inside `main`, after `configure_logging`. The root log level is `--log-level` or `LOG_LEVEL`, default `INFO`. TensorFlow is not a dependency.
+`bias_audit.py` is imported inside the pipeline and inside the dashboard loader, after the optional-extra log filter is installed. TensorFlow is not a dependency.
 
 ## Columns
 
 | Set | Columns | Used by |
 | --- | --- | --- |
-| `REQUIRED_COLUMNS` | `transaction_id`, `client_id`, `amount`, `currency`, `timestamp`, `age_category`, `loan_approved` | Real-mode CSV |
-| `REQUIRED_AUDIT_COLUMNS` | `transaction_id`, `amount`, `currency`, `timestamp` | The four data-quality checks |
+| `TRANSACTION_COLUMNS` | `record_id`, `transaction_id`, `legal_entity_id`, `legal_entity_name`, `source_system`, `counterparty_id`, `product_type`, `currency`, `exposure_amount`, `internal_rating`, `reporting_date`, `availability_date`, `age_category`, `age_band`, `loan_approved` | The seeded extract and `--mode real` |
 | Fairness columns | `age_category`, `loan_approved` | The disparate-impact ratio |
+| Aggregate grain | `legal_entity_id`, `currency`, `reporting_date`, sum of `exposure_amount` | The reconciliation |
+| `REQUIRED_COLUMNS` in `data_loader.py` | The original seven fields | The five-row mock only |
 
-In the synthetic file, `age_category` 1 is the unprivileged group and `age_category` 2 is the privileged group. `loan_approved` is the label. Rows missing either fairness column are dropped from the ratio. A null `transaction_id` stays in the ratio.
+`record_id` is always populated. Failing-id samples use it, including when `transaction_id` is null.
 
 ## Where a run stops
 
 | Step | Raises | Still continues |
 | --- | --- | --- |
-| `generate_mock_data` | Real mode: file missing, or a `REQUIRED_COLUMNS` entry missing. Any mode other than `mock` or `real`. | Mock mode writes five rows and returns them. |
-| `run_bcbs239_audit` | `transaction_id`, `amount`, `currency`, or `timestamp` is absent. | An empty frame returns fail for all four checks. The caller's frame is copied and left unchanged. |
-| `run_fairness_audit` | `age_category` or `loan_approved` is absent, or no row keeps both. | A null in another column, including `transaction_id`, does not drop the row. |
-| `create_pdf_report` | An exception from writing the PDF. | An unmapped dimension is logged and still printed. A disparate-impact ratio under 0.80 is a fail line on the PDF. |
-| `main` | Logs the traceback and exits 1 when one of the steps raises. | A failed check does not stop the run. The sample file exits 0. |
+| Load | Real mode: file missing, or a transaction column missing. Mock mode: `n` outside 30 to 20,000. | A failed rule does not stop the run. |
+| Rules | Unknown rule type, a principle title that does not match the 2013 text, a missing column, a missing reference file. | An empty frame fails every rule and continues. |
+| Fairness | `age_category` or `loan_approved` is absent, no complete row, or either demo group is empty. | A null in another column does not drop the row. A zero privileged selection rate returns status `UNDEFINED`. |
+| Lineage | The injected break has no LE-UK EUR slice to land on. | A failed reconciliation is a result, not an exception. |
+| Glossary | A term cites a rule, column, dataset, or principle that does not resolve. | |
+| PDF | An exception from writing the file. | |
+| `main` | Logs the traceback and exits 1 when a step raises. | The default file exits 0. |
 
-The command line only accepts `--mode mock` and `--mode real`. A bad flag exits through the argument parser.
+## Lineage
+
+The picture below is the committed sample. Staging is FAIL because rules fail. The aggregate is FAIL because staging is FAIL and because the LE-UK EUR reported total is 250,000 over the transaction sum. The source is NOT_MEASURED.
+
+```mermaid
+flowchart LR
+  src_transactions["core_banking.transactions\nNOT_MEASURED"]
+  stg_transactions["staging.risk_transactions\nFAIL"]
+  agg_exposure["risk_mart.exposure_by_entity\nFAIL"]
+  src_transactions --> stg_transactions
+  stg_transactions --> agg_exposure
+```
+
+The same text is in [lineage.mmd](lineage.mmd). `tests/test_dashboard.py` regenerates it from the sample and compares the file.
 
 ## Principles
 
-The numbers follow BCBS 239 (Basel Committee, January 2013). A pass on one field is the field check. It is narrower than the principle it supports. The same diagram is in the [README](../README.md#bcbs-239-mapping), next to the paragraph references.
+The numbers follow BCBS 239 (Basel Committee, January 2013). The mapping table and the limit of each citation are in the [README](../README.md#bcbs-239).
 
-```mermaid
-flowchart TB
-  subgraph mapped ["Field check, dimension, and the principle it supports"]
-    transactionId["transaction_id populated"] --> completeness["Completeness"]
-    completeness -->|supports| principle4["Principle 4, Completeness"]
-    amountRange["amount present, 0 to 1000000"] --> accuracy["Accuracy"]
-    accuracy -->|supports| principle3["Principle 3, Accuracy and Integrity"]
-    currencyList["currency EUR, USD, or GBP"] --> validity["Validity, DQ dimension"]
-    validity -->|supports| principle3Again["Principle 3, Accuracy and Integrity"]
-    timestampCut["timestamp parses, on or after 2023-01-01"] --> timeliness["Timeliness"]
-    timeliness -->|supports| principle5["Principle 5, Timeliness"]
-  end
-  subgraph notYet ["Not implemented"]
-    principle6["Principle 6, Adaptability"]
-    principle7["Principle 7, Accuracy of reports"]
-    principle11["Principle 11, Distribution"]
-    principle6 ~~~ principle7 ~~~ principle11
-  end
-  mapped -.->|"no check in this code"| notYet
-  classDef pending stroke-dasharray:5 4,stroke:#666
-  class principle6,principle7,principle11 pending
-```
-
-Validity is a data-quality dimension under Principle 3. Principle 7 is the reporting principle, separate from Principle 3. The lower group matches `validators.NOT_IMPLEMENTED`.
+`validators.py` still maps the original four field checks: completeness to Principle 4, the amount range and the currency list to Principle 3, timeliness to Principle 5. Validity remains a data-quality dimension under Principle 3. Those four functions are the regression tests for that first design. They are not the audit the CLI runs.
 
 ## Backlog
 
-The [roadmap](../README.md#roadmap) lists what is in the repository and what is left out on purpose. The backlog is a dashboard, data lineage, a rules catalog, automated fixes, and loaders other than CSV. Data lineage and the rules catalog are backlog items.
+The [roadmap](../README.md#roadmap) lists what is still out: automated fixes, a loader other than CSV, an OpenLineage server, on-demand subsets under Principle 6 paragraph 50, and Principle 11.

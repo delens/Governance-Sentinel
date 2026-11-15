@@ -49,15 +49,18 @@ def test_python_main_exits_zero_and_writes_outputs(tmp_path: Path) -> None:
     pdf = tmp_path / "Audit_Report.pdf"
     assert pdf.read_bytes().startswith(b"%PDF")
     assert (tmp_path / "governance_sentinel.log").is_file()
-    assert (tmp_path / "raw_financial_data.csv").is_file()
-    assert "Governance-Sentinel 1.2.0 starting" in result.stdout
-    assert result.stdout.count("STEP 1/4 - Loading data (mode=mock)") == 1
+    assert "Governance-Sentinel 2.0.0 starting" in result.stdout
+    assert result.stdout.count("STEP 1/5 - Loading data (mode=mock)") == 1
     assert "will be unavailable" not in result.stdout
     assert " UTC |" in result.stdout
     assert "Pipeline completed successfully." in result.stdout
+    assert (tmp_path / "data" / "generated_transactions.csv").is_file()
     text = _text(pdf)
-    assert "Completeness: FAIL" in text
-    assert "Disparate impact ratio: 0.0000" in text
+    assert "completeness: FAIL" in text
+    assert "run_id:" in text
+    assert "SHA-256:" in text
+    assert "four-fifths" in text
+    assert "not an EU legal requirement" in text
 
 
 def test_main_has_no_fpdf_deprecation_warnings(tmp_path: Path) -> None:
@@ -73,7 +76,7 @@ def test_real_mode_flag_reads_csv(tmp_path: Path) -> None:
         "--mode",
         "real",
         "--csv",
-        str(REPO / "raw_financial_data.csv"),
+        str(REPO / "data" / "sample_transactions.csv"),
         "--output",
         str(tmp_path / "real.pdf"),
         "--log-file",
@@ -81,8 +84,8 @@ def test_real_mode_flag_reads_csv(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.stderr + result.stdout
     assert "mode=real" in result.stdout
-    assert "Completeness: FAIL" in _text(tmp_path / "real.pdf")
-    assert not (tmp_path / "raw_financial_data.csv").exists()
+    assert "SHA-256:" in _text(tmp_path / "real.pdf")
+    assert not (tmp_path / "data" / "generated_transactions.csv").exists()
 
 
 def test_missing_csv_exits_one(tmp_path: Path) -> None:
@@ -93,16 +96,71 @@ def test_missing_csv_exits_one(tmp_path: Path) -> None:
 
 
 def test_log_level_error_hides_info_steps(tmp_path: Path) -> None:
-    result = _run(tmp_path, "--log-level", "ERROR")
+    result = _run(tmp_path, "--log-level", "ERROR", "--rows", "200")
     assert result.returncode == 0, result.stderr + result.stdout
     assert "STEP 1/4" not in result.stdout
     assert (tmp_path / "Audit_Report.pdf").is_file()
 
 
 def test_log_level_environment_variable(tmp_path: Path) -> None:
-    result = _run(tmp_path, env={"LOG_LEVEL": "ERROR"})
+    result = _run(tmp_path, "--rows", "200", env={"LOG_LEVEL": "ERROR"})
     assert result.returncode == 0, result.stderr + result.stdout
     assert "STEP 1/4" not in result.stdout
+
+
+def test_module_audit_writes_a_pdf(tmp_path: Path) -> None:
+    output = tmp_path / "module.pdf"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_sentinel",
+            "audit",
+            "--input",
+            str(REPO / "data" / "sample_transactions.csv"),
+            "--rules",
+            str(REPO / "rules" / "dq_rules.yml"),
+            "--out",
+            str(output),
+            "--log-file",
+            str(tmp_path / "module.log"),
+        ],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert output.read_bytes().startswith(b"%PDF")
+    assert "SHA-256:" in _text(output)
+    assert "LE-UK" in _text(output)
+
+
+def test_module_generate_writes_the_extract(tmp_path: Path) -> None:
+    output = tmp_path / "generated.csv"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_sentinel",
+            "generate",
+            "--rows",
+            "40",
+            "--seed",
+            "239",
+            "--out",
+            str(output),
+            "--counterparties",
+            str(tmp_path / "parties.csv"),
+        ],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert output.is_file()
+    assert "Wrote 40 rows" in result.stdout
 
 
 def test_import_does_not_set_tensorflow_log_level() -> None:
