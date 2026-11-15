@@ -1,0 +1,177 @@
+# Business glossary for the risk-transaction extract.
+#
+# Each term points at a critical data element, a physical column, the DQ
+# rules that check it, and the owner. Principle numbers follow BCBS 239
+# (Basel Committee, January 2013). Paragraph 37 asks for a dictionary of
+# concepts. Paragraph 33 asks for metadata and single identifiers.
+
+version: 1
+terms:
+  - id: transaction_identifier
+    term: Transaction identifier
+    definition: >
+      The identifier of one risk transaction in the booking feed. It is the
+      grain of the staged extract. A blank or a duplicate cannot be tied
+      back to the source.
+    cde: transaction_id
+    physical_column: transaction_id
+    physical_dataset: staging.risk_transactions
+    dq_rule_ids:
+      - txn_id_populated
+      - txn_id_unique
+    owner: Group Risk Data Office
+    steward: Transaction Data Steward
+    principles:
+      - "3"
+      - "4"
+
+  - id: legal_entity
+    term: Legal entity
+    definition: >
+      The group legal entity the exposure is booked on. The identifier is
+      the single code used across the extract and the aggregate. This demo
+      uses six fictional entities.
+    cde: legal_entity_id
+    physical_column: legal_entity_id
+    physical_dataset: staging.risk_transactions
+    dq_rule_ids:
+      - legal_entity_domain
+    owner: Group Risk Data Office
+    steward: Legal Entity Steward
+    principles:
+      - "2"
+      - "4"
+
+  - id: counterparty
+    term: Counterparty
+    definition: >
+      The other side of the exposure. The identifier must exist on the
+      counterparty master, which is the authoritative source for this demo.
+    cde: counterparty_id
+    physical_column: counterparty_id
+    physical_dataset: staging.risk_transactions
+    dq_rule_ids:
+      - counterparty_known
+    owner: Group Risk Data Office
+    steward: Counterparty Reference Steward
+    principles:
+      - "2"
+      - "3"
+
+  - id: gross_exposure
+    term: Gross exposure amount
+    definition: >
+      Exposure before credit risk mitigation, in the booking currency. The
+      aggregate sums this column. The demo does not apply netting or CRM.
+      Null and negative amounts are data defects, not hedges.
+    cde: exposure_amount
+    physical_column: exposure_amount
+    physical_dataset: staging.risk_transactions
+    dq_rule_ids:
+      - exposure_populated
+      - exposure_non_negative
+      - exposure_outlier
+    owner: Group Risk Data Office
+    steward: Credit Risk Data Steward
+    principles:
+      - "3"
+      - "4"
+
+  - id: aggregated_exposure
+    term: Aggregated exposure
+    definition: >
+      Sum of gross exposure for one legal entity, currency, and reporting
+      date. The reported figure is reconciled to the transaction sum.
+    cde: exposure_amount
+    physical_column: exposure_amount
+    physical_dataset: risk_mart.exposure_by_entity
+    dq_rule_ids:
+      - exposure_populated
+      - exposure_non_negative
+    owner: Group Risk Data Office
+    steward: Regulatory Reporting Steward
+    principles:
+      - "3"
+      - "7"
+
+  - id: booking_currency
+    term: Booking currency
+    definition: >
+      ISO currency code of the exposure. The demo dictionary allows EUR,
+      USD, GBP, CHF, and JPY.
+    cde: currency
+    physical_column: currency
+    physical_dataset: staging.risk_transactions
+    dq_rule_ids:
+      - currency_populated
+      - currency_domain
+    owner: Group Risk Data Office
+    steward: Reference Data Steward
+    principles:
+      - "3"
+      - "4"
+
+  - id: internal_rating
+    term: Internal rating
+    definition: >
+      The bank's rating grade for the counterparty on this transaction. NR
+      means the credit process recorded the counterparty as unrated. It is
+      not a blank.
+    cde: internal_rating
+    physical_column: internal_rating
+    physical_dataset: staging.risk_transactions
+    dq_rule_ids:
+      - rating_populated
+      - rating_domain
+    owner: Group Risk Data Office
+    steward: Credit Risk Data Steward
+    principles:
+      - "3"
+      - "4"
+
+  - id: product_type
+    term: Product type
+    definition: >
+      The product family of the transaction. The demo dictionary is LOAN,
+      DERIVATIVE, SECURITY, and GUARANTEE.
+    cde: product_type
+    physical_column: product_type
+    physical_dataset: staging.risk_transactions
+    dq_rule_ids:
+      - product_domain
+    owner: Group Risk Data Office
+    steward: Credit Risk Data Steward
+    principles:
+      - "3"
+
+  - id: reporting_date
+    term: Reporting date
+    definition: >
+      The as-of date of the risk snapshot. Timeliness is measured from this
+      date. It is also part of the aggregate grain.
+    cde: reporting_date
+    physical_column: reporting_date
+    physical_dataset: staging.risk_transactions
+    dq_rule_ids:
+      - reporting_date_populated
+      - availability_t_plus_1
+    owner: Group Risk Data Office
+    steward: Regulatory Reporting Steward
+    principles:
+      - "5"
+
+  - id: availability_date
+    term: Availability date
+    definition: >
+      The date the record was available to risk reporting. The demo timeliness
+      rule fails the row when this is more than one business day after the
+      reporting date. Principle 5 leaves the real deadline to the bank.
+    cde: availability_date
+    physical_column: availability_date
+    physical_dataset: staging.risk_transactions
+    dq_rule_ids:
+      - availability_t_plus_1
+    owner: Group Risk Data Office
+    steward: Regulatory Reporting Steward
+    principles:
+      - "5"

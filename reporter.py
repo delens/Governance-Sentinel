@@ -18,8 +18,8 @@ from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 
 from governance_sentinel import __version__
+from governance_sentinel.lineage import LineageReport
 from governance_sentinel.models import FairnessResult, RuleResult
-from governance_sentinel.principles import NOT_IMPLEMENTED
 from governance_sentinel.rules import dimension_rollup
 
 logger = logging.getLogger(__name__)
@@ -42,6 +42,7 @@ def create_pdf_report(
     row_count: int,
     output_path: str = "Audit_Report.pdf",
     dataset_name: str = "",
+    lineage: LineageReport | None = None,
 ) -> None:
     """Write the audit PDF to ``output_path``.
 
@@ -162,23 +163,27 @@ def create_pdf_report(
         pdf.ln(1)
 
     _font(pdf, 9)
-    not_implemented = ", ".join(
-        f"Principle {number} ({title})" for number, title in NOT_IMPLEMENTED
-    )
     _paragraph(
         pdf,
-        "Not implemented as a control in this report: "
-        f"{not_implemented}. Principle 7 is about how accurately risk reports "
-        "convey aggregated data. It is separate from Principle 3. Principle 6 "
-        "is the ability to aggregate on demand. Principle 11 is distribution "
-        "and confidentiality. The rule inventory above is a validation list "
-        "of the kind paragraph 53(b) describes. Holding the list is not an "
-        "accurate risk report.",
+        "Principle 6 (Adaptability), paragraphs 48-50: the exposure aggregate "
+        "is one grain, by legal entity, currency, and reporting date "
+        "(paragraph 49(a)). It is not an on-demand subset for a supervisory "
+        "query (paragraph 50). Principle 7 (Accuracy), paragraphs 52-56: the "
+        "reconciliation, when this run includes one, is the paragraph 53(a) "
+        "tie from a reported total back to transaction risk data. It is not "
+        "a board risk report. Principle 11 (Distribution) is not implemented. "
+        "The rule inventory is a validation list of the kind paragraph 53(b) "
+        "describes. Holding the list is not an accurate risk report.",
     )
     pdf.ln(2)
 
+    next_section = 3
+    if lineage is not None:
+        _write_lineage(pdf, lineage, next_section)
+        next_section += 1
+
     _font(pdf, 13, "B")
-    _line(pdf, "3. Algorithmic fairness (disparate impact)", 7)
+    _line(pdf, f"{next_section}. Algorithmic fairness (disparate impact)", 7)
     _font(pdf, 9)
     _paragraph(
         pdf,
@@ -235,6 +240,50 @@ def create_pdf_report(
 
     pdf.output(output_path)
     logger.info("PDF report written to %s.", output_path)
+
+
+def _write_lineage(pdf: FPDF, lineage: LineageReport, section: int) -> None:
+    _font(pdf, 13, "B")
+    _line(pdf, f"{section}. Lineage and reconciliation", 7)
+    _font(pdf, 9)
+    _paragraph(
+        pdf,
+        "Flow: core_banking.transactions to staging.risk_transactions to "
+        "risk_mart.exposure_by_entity. The source node is NOT_MEASURED. "
+        "Rules run on the staged extract. The aggregate inherits a staging "
+        "FAIL, and it also FAILs when the transaction sum does not tie to "
+        "the reported total. Principle 3, paragraph 36(c), and Principle 7, "
+        "paragraph 53(a), are the basis for that tie. Footnote 17 calls "
+        "reconciliation comparing items and explaining the difference.",
+    )
+    for node in lineage.nodes:
+        status = lineage.statuses.get(node.node_id, "NOT_MEASURED")
+        _line(pdf, f"{node.dataset} ({node.layer}): {status}", 5)
+    recon = lineage.reconciliation
+    _line(
+        pdf,
+        f"Reconciliation: {recon.status} at tolerance {recon.tolerance_pct:.1f} percent.",
+        5,
+    )
+    if recon.injected_break:
+        _paragraph(
+            pdf,
+            "The reported total copies the transaction sum, then adds 250000 "
+            "on LE-UK in EUR. That break is injected so the control has a "
+            "known difference to explain.",
+        )
+    failed = recon.failed_slices
+    if not failed:
+        _paragraph(pdf, "No reconciliation slice failed.")
+    for item in failed[:8]:
+        _paragraph(
+            pdf,
+            f"{item.legal_entity_id} {item.currency} {item.reporting_date}: "
+            f"transactions {item.transaction_total:.2f}, "
+            f"reported {item.reported_total:.2f}, "
+            f"difference {item.difference:.2f}.",
+        )
+    pdf.ln(2)
 
 
 def _fairness_status(fairness: FairnessResult) -> str:

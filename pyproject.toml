@@ -40,5 +40,5 @@ no_implicit_optional = true
 strict_equality = true
 
 [[tool.mypy.overrides]]
-module = ["aif360.*", "pandas", "yaml"]
+module = ["aif360.*", "pandas", "yaml", "networkx"]
 ignore_missing_imports = true

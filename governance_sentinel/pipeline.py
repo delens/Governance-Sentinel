@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from governance_sentinel.catalog import export_glossary, load_glossary
+from governance_sentinel.lineage import build_lineage, openlineage_event, write_lineage_artifacts
 from governance_sentinel.rules import evaluate_rules, load_rules
 from governance_sentinel.synthetic import (
     DEFAULT_ROWS,
@@ -31,6 +33,7 @@ logger = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RULES = REPO_ROOT / "rules" / "dq_rules.yml"
 DEFAULT_COUNTERPARTIES = REPO_ROOT / "data" / "counterparties.csv"
+DEFAULT_GLOSSARY = REPO_ROOT / "catalog" / "glossary.yml"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -68,6 +71,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Counterparty master used by the referential rule.",
     )
     parser.add_argument(
+        "--glossary",
+        default=str(DEFAULT_GLOSSARY),
+        help="Business glossary YAML.",
+    )
+    parser.add_argument(
         "--rows",
         type=int,
         default=DEFAULT_ROWS,
@@ -99,7 +107,7 @@ def execute(args: argparse.Namespace) -> str:
     run_id = uuid.uuid4().hex
     logger.info("Governance-Sentinel %s starting", FRAMEWORK_VERSION)
     logger.info("run_id: %s", run_id)
-    logger.info("STEP 1/4 - Loading data (mode=%s)", args.mode)
+    logger.info("STEP 1/5 - Loading data (mode=%s)", args.mode)
 
     csv_path = Path(str(args.csv))
     if args.mode == "mock":
@@ -137,7 +145,7 @@ def execute(args: argparse.Namespace) -> str:
         digest,
     )
 
-    logger.info("STEP 2/4 - Data-quality rules")
+    logger.info("STEP 2/5 - Data-quality rules")
     ruleset = load_rules(str(args.rules))
     try:
         reference = pd.read_csv(str(args.counterparties))
@@ -146,14 +154,27 @@ def execute(args: argparse.Namespace) -> str:
         raise
     rule_results = evaluate_rules(loaded, ruleset, {"counterparties": reference})
 
-    logger.info("STEP 3/4 - Disparate-impact audit")
+    logger.info("STEP 3/5 - Disparate-impact audit")
     # Imported here so AIF360's optional-extra notices are filtered by the
     # logging configuration the caller installed before execute().
     from bias_audit import audit_fairness
 
     fairness = audit_fairness(loaded)
 
-    logger.info("STEP 4/4 - Writing PDF audit report")
+    logger.info("STEP 4/5 - Lineage, reconciliation, and glossary")
+    lineage = build_lineage(loaded, rule_results, inject_break=True)
+    event = openlineage_event(run_id, loaded, rule_results)
+    output_dir = Path(str(args.output)).resolve().parent
+    write_lineage_artifacts(lineage, event, output_dir)
+    glossary = load_glossary(str(args.glossary), ruleset)
+    export_glossary(glossary, output_dir / "glossary.json", output_dir / "glossary.csv")
+    logger.info(
+        "Reconciliation %s. Aggregate status %s.",
+        lineage.reconciliation.status,
+        lineage.statuses["agg_exposure"],
+    )
+
+    logger.info("STEP 5/5 - Writing PDF audit report")
     create_pdf_report(
         rule_results,
         fairness,
@@ -162,6 +183,7 @@ def execute(args: argparse.Namespace) -> str:
         row_count=len(loaded),
         output_path=str(args.output),
         dataset_name=str(csv_path),
+        lineage=lineage,
     )
     logger.info("Pipeline completed successfully.")
     logger.info("Files: %s | %s", args.output, args.log_file)

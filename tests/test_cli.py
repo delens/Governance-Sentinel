@@ -50,7 +50,7 @@ def test_python_main_exits_zero_and_writes_outputs(tmp_path: Path) -> None:
     assert pdf.read_bytes().startswith(b"%PDF")
     assert (tmp_path / "governance_sentinel.log").is_file()
     assert "Governance-Sentinel 2.0.0 starting" in result.stdout
-    assert result.stdout.count("STEP 1/4 - Loading data (mode=mock)") == 1
+    assert result.stdout.count("STEP 1/5 - Loading data (mode=mock)") == 1
     assert "will be unavailable" not in result.stdout
     assert " UTC |" in result.stdout
     assert "Pipeline completed successfully." in result.stdout
