@@ -1,0 +1,17 @@
+# Streamlit Community Cloud reads this file. Do not set server.port or
+# server.address here: Cloud injects both. headless avoids a local browser
+# launch. The app does not phone home for usage stats.
+
+[server]
+headless = true
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"
+primaryColor = "#1b4f72"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#1a1a1a"

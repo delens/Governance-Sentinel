@@ -8,6 +8,32 @@ been created for these versions.
 
 ## [Unreleased]
 
+### Added
+
+- Ownership matrix in `governance/ownership.yml`. One row per glossary term:
+  data owner, data steward, source system, criticality, tolerance threshold,
+  and the linked data-quality rules. Owners and stewards are roles. The audit
+  rejects a term with no row, a rule id that does not exist, or a tolerance
+  that is not the lowest linked rule threshold. The run writes `ownership.csv`.
+  The dashboard shows the table. The full PDF names the matrix owner on each
+  failed rule.
+- `python -m governance_sentinel exec-summary` writes one A4 page: a red,
+  amber, or green light for each scored principle, Principle 11 as not
+  measured, the overall score, the delta versus the latest stored run when
+  the history file already has one, the top three open risks in plain
+  language, the accountable role, and a due date. The injected LE-UK EUR
+  break is described as injected. The command does not append a history run.
+- `python -m governance_sentinel export-catalog --target datahub|collibra`
+  writes DataHub Metadata Change Proposal JSON, or a Collibra CSV and Import
+  API JSON, for datasets, fields, glossary terms, ownership roles, and column
+  lineage. No network call and no catalog SDK. The shape and its limits are
+  in `docs/catalog-export.md`.
+- `docs/img/dashboard-demo.gif`, a headless walkthrough of the Streamlit
+  views, embedded at the top of the README. `.streamlit/config.toml`,
+  `runtime.txt`, and `.python-version` mark the app as ready for Streamlit
+  Community Cloud. A missing DuckDB file still uses `runs/kpi_demo.json`.
+  No site is deployed. The live demo URL in the README is marked coming soon.
+
 ## [2.0.0] - 2026-11-15
 
 The portfolio audit from pull request #3, plus a local run history and

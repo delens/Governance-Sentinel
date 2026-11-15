@@ -135,6 +135,10 @@ def test_module_audit_writes_a_pdf(tmp_path: Path) -> None:
     assert output.read_bytes().startswith(b"%PDF")
     assert "SHA-256:" in _text(output)
     assert "LE-UK" in _text(output)
+    assert "Ownership matrix:" in _text(output)
+    ownership_csv = tmp_path / "ownership.csv"
+    assert ownership_csv.is_file()
+    assert "transaction_identifier" in ownership_csv.read_text(encoding="utf-8")
 
 
 def test_module_generate_writes_the_extract(tmp_path: Path) -> None:
