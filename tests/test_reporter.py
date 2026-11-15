@@ -14,8 +14,8 @@ from pypdf import PdfReader
 
 from bias_audit import FOUR_FIFTHS_HEURISTIC
 from governance_sentinel import __version__
+from governance_sentinel.logging_config import UtcFormatter
 from governance_sentinel.models import FairnessResult, RuleResult
-from main import UtcFormatter
 from reporter import DI_THRESHOLD, FRAMEWORK_VERSION, create_pdf_report
 
 

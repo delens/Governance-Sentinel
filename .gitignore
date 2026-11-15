@@ -19,6 +19,6 @@ htmlcov/
 !Audit_Report.pdf
 
 # Full synthetic extract written by mock mode. The committed sample is data/sample_transactions.csv.
-data/generated_transactions.csv
+data/generated_*.csv
 
 .DS_Store

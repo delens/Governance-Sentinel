@@ -108,6 +108,61 @@ def test_log_level_environment_variable(tmp_path: Path) -> None:
     assert "STEP 1/4" not in result.stdout
 
 
+def test_module_audit_writes_a_pdf(tmp_path: Path) -> None:
+    output = tmp_path / "module.pdf"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_sentinel",
+            "audit",
+            "--input",
+            str(REPO / "data" / "sample_transactions.csv"),
+            "--rules",
+            str(REPO / "rules" / "dq_rules.yml"),
+            "--out",
+            str(output),
+            "--log-file",
+            str(tmp_path / "module.log"),
+        ],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert output.read_bytes().startswith(b"%PDF")
+    assert "SHA-256:" in _text(output)
+    assert "LE-UK" in _text(output)
+
+
+def test_module_generate_writes_the_extract(tmp_path: Path) -> None:
+    output = tmp_path / "generated.csv"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_sentinel",
+            "generate",
+            "--rows",
+            "40",
+            "--seed",
+            "239",
+            "--out",
+            str(output),
+            "--counterparties",
+            str(tmp_path / "parties.csv"),
+        ],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert output.is_file()
+    assert "Wrote 40 rows" in result.stdout
+
+
 def test_import_does_not_set_tensorflow_log_level() -> None:
     script = "import os, main\nassert 'TF_CPP_MIN_LOG_LEVEL' not in os.environ\n"
     result = subprocess.run(

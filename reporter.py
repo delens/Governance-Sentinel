@@ -253,8 +253,8 @@ def _write_lineage(pdf: FPDF, lineage: LineageReport, section: int) -> None:
         "Rules run on the staged extract. The aggregate inherits a staging "
         "FAIL, and it also FAILs when the transaction sum does not tie to "
         "the reported total. Principle 3, paragraph 36(c), and Principle 7, "
-        "paragraph 53(a), are the basis for that tie. Footnote 17 calls "
-        "reconciliation comparing items and explaining the difference.",
+        "paragraph 53(a), are the basis for that tie. Footnote 17 defines "
+        "reconciliation as comparing items and explaining the difference.",
     )
     for node in lineage.nodes:
         status = lineage.statuses.get(node.node_id, "NOT_MEASURED")

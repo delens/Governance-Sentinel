@@ -66,7 +66,10 @@ EXPOSURE_LOG_SIGMA = 0.40
 # below exp(mu + 2*sigma). One sigma keeps every body point inside the fence
 # while leaving the quartiles (0.67 sigma) untouched.
 EXPOSURE_CLIP_SIGMA = 1.0
-OUTLIER_EXPOSURE = 1_000_000_000.0
+# Above the interquartile fence (about 1.3e5 for this distribution) and small
+# enough that one spike does not hide a 250,000 reconciliation break inside
+# a 0.1 percent tolerance on the entity total.
+OUTLIER_EXPOSURE = 500_000.0
 NEGATIVE_EXPOSURE = -1_500.0
 LATE_BUSINESS_DAYS = 4
 

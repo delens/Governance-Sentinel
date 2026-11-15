@@ -1,0 +1,6 @@
+flowchart LR
+  src_transactions["core_banking.transactions\nNOT_MEASURED"]
+  stg_transactions["staging.risk_transactions\nFAIL"]
+  agg_exposure["risk_mart.exposure_by_entity\nFAIL"]
+  src_transactions --> stg_transactions
+  stg_transactions --> agg_exposure

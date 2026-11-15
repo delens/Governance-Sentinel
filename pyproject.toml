@@ -28,6 +28,7 @@ files = [
     "validators.py",
     "bias_audit.py",
     "reporter.py",
+    "streamlit_app.py",
     "governance_sentinel",
     "tests",
 ]
@@ -40,5 +41,5 @@ no_implicit_optional = true
 strict_equality = true
 
 [[tool.mypy.overrides]]
-module = ["aif360.*", "pandas", "yaml", "networkx"]
+module = ["aif360.*", "pandas", "yaml", "networkx", "streamlit"]
 ignore_missing_imports = true

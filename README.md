@@ -2,163 +2,160 @@
 
 [![CI](https://github.com/delens/Governance-Sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/delens/Governance-Sentinel/actions/workflows/ci.yml)
 
-A Compliance-as-Code prototype for a hiring-manager review: four field-level data-quality checks mapped to BCBS 239, a disparate-impact ratio from IBM AIF360, and a one-page PDF.
+A compliance-as-code prototype for a data-governance review: declarative data-quality rules on a seeded book of risk transactions, mapped to BCBS 239, with a business glossary, technical lineage, a transaction-to-aggregate reconciliation, a disparate-impact illustration, a PDF, and a Streamlit scorecard.
 
 **Notice.** Personal research sandbox. The data is synthetic. This project is not affiliated with any employer, client, or production system. The full notice is at the end of this file.
 
 ## Run it
 
-Requires **Python 3.12**. The pins in `requirements.txt` include NumPy 2.5, SciPy 1.18, and scikit-learn 1.9, which are published for 3.12.
+Requires **Python 3.12**.
 
 ```bash
 python -m pip install -r requirements.txt
 python main.py
+python -m governance_sentinel audit --input data/sample_transactions.csv --rules rules/dq_rules.yml --out Audit_Report.pdf
 ```
 
-| Output | What it is |
+`python main.py` generates 4,000 rows (seed 239), audits them, and writes `Audit_Report.pdf`. The module command audits the committed 150-row sample. Both exit 0.
+
+| Command | What it writes |
 | --- | --- |
-| `Audit_Report.pdf` | Audit report. The copy in the repo is a sample from the run below. A later run overwrites it. |
-| `governance_sentinel.log` | UTC log, appended on each run. Git ignores it. |
-| `raw_financial_data.csv` | Five synthetic rows, rewritten in mock mode. |
+| `python main.py` | `data/generated_transactions.csv`, `Audit_Report.pdf`, `lineage.mmd`, `lineage.json`, `openlineage.json`, `glossary.json`, `glossary.csv`, `reconciliation.csv`, `governance_sentinel.log` |
+| `python -m governance_sentinel generate --rows 4000 --seed 239 --out data/generated_transactions.csv` | A seeded extract and a copy of the counterparty master. No audit. |
+| `python main.py --mode real --csv data/sample_transactions.csv` | Reads a CSV. It does not regenerate it. |
+
+`--log-level` sets the root logger (default `INFO`, or the `LOG_LEVEL` environment variable).
+
+## Dashboard
+
+The scorecard, the trend, the lineage graph, the glossary, the fairness result, and a PDF download are in `streamlit_app.py`.
 
 ```bash
-python main.py --mode real --csv raw_financial_data.csv
-python main.py --log-level DEBUG
+streamlit run streamlit_app.py
 ```
 
-`--mode real` reads the CSV and checks that the expected columns are present. There is no database or API loader. `--log-level` sets the root logger (default `INFO`). If the flag is omitted, the `LOG_LEVEL` environment variable is used.
+The app opens on the committed 150-row sample and the six-point history in `runs/history.jsonl`. It does not need an API key.
+
+Streamlit Community Cloud can run this repository as it is:
+
+- Main file path: `streamlit_app.py`
+- Requirements file: `requirements.txt`
+- Python version: 3.12
+
+This repository does not deploy the app and does not create an account.
+
+![Scorecard on the committed sample](docs/dashboard_scorecard.png)
+
+![Lineage graph with data-quality status](docs/dashboard_lineage.png)
+
+![Run history for pass rate and disparate impact](docs/dashboard_trend.png)
+
+![Disparate-impact result](docs/dashboard_fairness.png)
+
+## Report
+
+![First page of the audit report](docs/audit_report_preview.png)
+
+![Reconciliation and disparate-impact section](docs/audit_report_reconciliation.png)
+
+`Audit_Report.pdf` in the repository root is the output of `python main.py` (4,000 rows, seed 239). A later run overwrites it. The PDF carries the run id, the SHA-256 of the input file, the scorecard (rows checked, rows failed, pass percentage, minimum pass percentage, PASS or FAIL), remediation with sample failing ids, the reconciliation, and the fairness result.
 
 ## Pipeline
 
-`main.main` runs four steps. `mock` is the default. `real` reads a CSV. The loader is `data_loader.generate_mock_data`.
-
 ```mermaid
 flowchart TD
-  start["main.main"] --> logging["main.configure_logging"]
-  logging --> load["data_loader.generate_mock_data"]
-  load --> mode{"mode"}
-  mode -->|mock| mock["Write five synthetic rows to the CSV"]
-  mode -->|real| real["Read the CSV and require seven columns"]
-  mock --> audit["validators.run_bcbs239_audit"]
-  real --> audit
-  audit --> bias["bias_audit.run_fairness_audit"]
-  bias --> report["reporter.create_pdf_report"]
-  report --> files["PDF report and log file"]
-  real -->|missing file or columns| halt["main logs the traceback and exits 1"]
-  audit -->|missing audit column| halt
-  bias -->|missing fields or no usable row| halt
+  start["python main.py or python -m governance_sentinel audit"] --> load["Load a seeded extract or a CSV"]
+  load --> rules["Evaluate rules/dq_rules.yml"]
+  rules --> fairness["Disparate-impact ratio"]
+  fairness --> lineage["Lineage, glossary export, reconciliation"]
+  lineage --> pdf["PDF, Mermaid, OpenLineage JSON"]
 ```
 
-A check that returns fail still continues. On the sample file all four checks fail, the disparate-impact ratio is 0.0000, and the process exits 0 and writes the PDF. `run_bcbs239_audit` copies the frame. An empty frame fails all four checks and still continues.
+A failed rule does not stop the run. A missing file, a missing column, or an empty fairness group does. `main` logs the traceback and exits 1.
 
-The halt path is an exception. Real mode raises when the file is missing or when a column in `REQUIRED_COLUMNS` is missing. The audit raises when `transaction_id`, `amount`, `currency`, or `timestamp` is missing. The fairness step raises when `age_category` or `loan_approved` is missing, or when no row keeps both. `main` logs the traceback and exits 1. Any other exception in these steps does the same.
+## What a rule records
 
-## Modules
+`threshold` in `rules/dq_rules.yml` is the minimum pass percentage. A rule PASSes when at least one record was checked and the pass percentage is at least that figure. The result stores rows checked, rows failed, the pass percentage, the threshold, PASS or FAIL, and up to five failing record ids. The full failing-id list stays on the result object for tests.
+
+Validity is a data-quality dimension. It is not a BCBS 239 principle. Domain rules support Principle 3, paragraph 37, the dictionary of concepts.
+
+| Rule | Dimension | What it checks | Principle it supports |
+| --- | --- | --- | --- |
+| `txn_id_populated` | Completeness | `transaction_id` is present | 4, paragraphs 41-43 |
+| `txn_id_unique` | Accuracy | Non-missing identifiers are unique | 3, paragraph 36 |
+| `exposure_populated` | Completeness | `exposure_amount` is present | 4 |
+| `exposure_non_negative` | Accuracy | Non-missing amount is at least 0 | 3, paragraphs 36 and 40 |
+| `exposure_outlier` | Accuracy | Interquartile-range screen on amounts at or above 0 | 3, paragraph 40 |
+| `currency_populated`, `currency_domain` | Completeness, validity | Currency present and on the glossary list | 4 and 3, paragraph 37 |
+| `rating_populated`, `rating_domain` | Completeness, validity | Rating present and on the scale. NR is a grade, not a blank | 4 and 3, paragraph 37 |
+| `legal_entity_domain` | Validity | Group legal-entity identifier | 2, paragraph 33 |
+| `product_domain` | Validity | Product family on the glossary list | 3, paragraph 37 |
+| `counterparty_known` | Accuracy | Present on the counterparty master. A blank is a fail | 3, paragraph 36(c) and 36(d) |
+| `availability_t_plus_1` | Timeliness | Business-day lag from `reporting_date` to `availability_date` is 0 or 1 | 5, paragraphs 44-47 |
+| `reporting_date_populated` | Completeness | The as-of date is present | 5 |
+
+The timeliness rule uses the numpy business-day calendar and the default weekmask. It has no holiday calendar. Principle 5 leaves the real deadline to the bank. T+1 is the worked example in this demo, not a supervisory SLA.
+
+The outlier rule is an interquartile-range fence with k = 1.5. Values below 0 are left to the range rule. The fence is a screening heuristic, not a risk limit and not an accounting-materiality test. Paragraph 40 expects the bank to measure and monitor accuracy. This screen is a small version of that idea.
+
+On the default 4,000-row file, eight rules fail and six pass. The failures are the injected defects sitting past their thresholds. The passes are the rules whose defect rate is inside the threshold.
+
+The original four boolean checks remain in `validators.py` and are still unit-tested. The audit the CLI runs is the YAML engine.
+
+## Synthetic book
+
+`governance_sentinel/synthetic.py` builds the book. The default is 4,000 rows, seed 239, inside the 1,000 to 10,000 band. `data/sample_transactions.csv` is the first 150 rows of that same seed, committed so the dashboard and the module command have a file to open. `data/counterparties.csv` is the 40-row master. Fictional legal entities: Lumiere Banque SA, Nordhafen Bank AG, Thames Retail plc, Harbor National NA, Straits Markets Pte Ltd, Alpine Custody AG.
+
+Defect counts are `round(rate * n)`. At 4,000 rows the rates below are exact. A row can carry more than one defect when the defects are on different columns. Within one column the defects do not overlap.
+
+| Defect | Rate |
+| --- | --- |
+| Missing `transaction_id` | 1.0% |
+| Duplicate `transaction_id` | 0.4% of rows overwritten, plus the donor row |
+| Null exposure | 1.5% |
+| Negative exposure | 1.0% |
+| Exposure spike (500,000) | 0.8% |
+| Invalid currency `XYZ` | 1.2% |
+| Null currency | 0.4% |
+| Orphan counterparty | 2.0% |
+| Null counterparty | 0.5% |
+| Availability more than T+1 | 3.0% |
+| Unparseable availability date | 0.3% |
+| Invalid rating `BAD` | 1.0% |
+| Null rating | 0.8% |
+| Null `age_category` | 0.4% |
+| Null `loan_approved` | 0.2% |
+
+Target approval rates, before those nulls: 0.78 for the privileged group and 0.54 for the unprivileged group. The expected disparate-impact ratio is about 0.69. The realised ratio depends on the seed. On seed 239 and 4,000 rows it is below 0.80. The 150-row sample is too small for that ratio to be stable. The history file uses 1,200 rows per point.
+
+The reported exposure total copies the transaction sum and then adds 250,000 on LE-UK in EUR. That break is injected so the reconciliation has a difference to explain. The tolerance is 0.1 percent of the absolute transaction total. The 500,000 spikes are above the interquartile fence and small enough that 250,000 still exceeds the tolerance on the LE-UK EUR slice.
+
+## Lineage and glossary
 
 ```mermaid
 flowchart LR
-  mainPy["main.py"]
-  dataLoader["data_loader.py"]
-  validatorsPy["validators.py"]
-  biasPy["bias_audit.py"]
-  reporterPy["reporter.py"]
-  csvFile["CSV file"]
-  pdfFile["PDF report"]
-  logFile["Log file"]
-
-  mainPy -->|"generate_mock_data"| dataLoader
-  mainPy -->|"run_bcbs239_audit"| validatorsPy
-  mainPy -->|"run_fairness_audit"| biasPy
-  mainPy -->|"create_pdf_report"| reporterPy
-  reporterPy -->|"DQ_DIMENSIONS and thresholds"| validatorsPy
-  dataLoader -->|"mock writes, real reads"| csvFile
-  reporterPy -->|"writes"| pdfFile
-  mainPy -->|"stdout and file"| logFile
+  src_transactions["core_banking.transactions\nNOT_MEASURED"]
+  stg_transactions["staging.risk_transactions\nFAIL"]
+  agg_exposure["risk_mart.exposure_by_entity\nFAIL"]
+  src_transactions --> stg_transactions
+  stg_transactions --> agg_exposure
 ```
 
-`reporter.py` reads `DQ_DIMENSIONS`, `NOT_IMPLEMENTED`, and the check thresholds from `validators.py`. `bias_audit.py` is imported inside `main` after `configure_logging`. Column lists and these stops are in [docs/architecture.md](docs/architecture.md).
+`docs/lineage.mmd` is that picture, generated from the metadata for the committed sample. A test checks that the file matches the generator. The source node is `NOT_MEASURED`: this prototype does not have a separate booking extract. Rules run on the staged CSV. The aggregate inherits a staging FAIL, and it also FAILs when the reconciliation FAILs. `networkx` builds the same directed graph for the dashboard.
 
-## Sample console output
+Column flow: every staged column is a copy of the source column. The aggregate keeps `legal_entity_id`, `currency`, and `reporting_date` as group keys and sums `exposure_amount`.
 
-```text
-2026-10-23 08:24:37 UTC | INFO     | __main__ | Governance-Sentinel 1.2.0 starting
-2026-10-23 08:24:37 UTC | INFO     | __main__ | STEP 1/4 - Loading data (mode=mock)
-2026-10-23 08:24:37 UTC | INFO     | data_loader | Mock mode: generating a synthetic dataset with intentional anomalies.
-2026-10-23 08:24:37 UTC | INFO     | data_loader | Mock dataset written to raw_financial_data.csv (5 rows).
-2026-10-23 08:24:37 UTC | INFO     | __main__ | Dataset loaded: 5 rows, 7 columns
-2026-10-23 08:24:37 UTC | INFO     | __main__ | STEP 2/4 - BCBS 239 data-quality audit
-2026-10-23 08:24:37 UTC | INFO     | validators | BCBS 239 audit completed: {'Completeness': False, 'Accuracy': False, 'Validity': False, 'Timeliness': False}
-2026-10-23 08:24:37 UTC | INFO     | __main__ | STEP 3/4 - Disparate-impact audit
-2026-10-23 08:24:38 UTC | INFO     | bias_audit | Disparate impact (unprivileged / privileged): 0.0000
-2026-10-23 08:24:38 UTC | INFO     | __main__ | STEP 4/4 - Writing PDF audit report
-2026-10-23 08:24:38 UTC | INFO     | reporter | PDF report written to Audit_Report.pdf.
-2026-10-23 08:24:38 UTC | INFO     | __main__ | Pipeline completed successfully.
-2026-10-23 08:24:38 UTC | INFO     | __main__ | Files: Audit_Report.pdf | governance_sentinel.log
-```
+The reconciliation supports:
 
-Every data-quality check fails on this file, and the disparate-impact ratio is 0.0000. The rows were built that way.
+- Principle 3, paragraph 36(c): risk data reconciled with the bank's sources. Footnote 17 defines reconciliation as comparing items and explaining the difference.
+- Principle 7, paragraph 53(a): a defined tie from a reported total back to risk data. This is not a board risk report. Paragraphs 52 and 54-56 are not implemented.
+- Principle 6, paragraph 49(a): one aggregate grain. Paragraph 50, an on-demand subset for a supervisory query, is not implemented.
 
-## Report preview
+Principle 2, footnote 16, is about automated reconciliation where more than one data model is in use. The check here is one transaction extract against one aggregate. That is the Principle 3 / Principle 7 case, not that footnote.
 
-![Sample Governance-Sentinel audit report](docs/audit_report_preview.png)
+`catalog/glossary.yml` links each business term to a CDE, a physical column, the DQ rules, and an owner. A term that cites a missing rule or a missing column is rejected at load. Each run writes `glossary.json` and `glossary.csv`.
 
-`Audit_Report.pdf` in the repository root is that sample.
-
-## BCBS 239 mapping
-
-The principle numbers follow the Basel Committee on Banking Supervision, *Principles for effective risk data aggregation and risk reporting* (BCBS 239), January 2013: <https://www.bis.org/publ/bcbs239.pdf>.
-
-| Check | BCBS 239 | What this prototype measures |
-| --- | --- | --- |
-| Completeness | Principle 4, Completeness (paragraphs 41-43) | `transaction_id` is populated. Principle 4 is about capturing material risk data across the group. This check is only the identifier. |
-| Accuracy | Principle 3, Accuracy and Integrity (paragraphs 36-40) | `amount` is populated and between 0 and 1000000 inclusive. This is a fixed threshold. |
-| Validity | Supports Principle 3. Validity is a data-quality dimension, and BCBS 239 does not list it as a principle. | `currency` is populated and one of EUR, USD, GBP. Paragraph 37 expects concepts to be defined consistently. A short whitelist is the demo version of that idea. |
-| Timeliness | Principle 5, Timeliness (paragraphs 44-47) | `timestamp` parses and falls on or after 2023-01-01. Principle 5 leaves the deadline to the bank. `2023-01-01` is the reference date used in this demo. |
-
-The PDF also names three principles this repository does not implement:
-
-- Principle 6, Adaptability (paragraphs 48-50): ad hoc aggregation.
-- Principle 7, Accuracy (paragraphs 52-56): risk reports convey aggregated data accurately. This is a reporting principle, separate from Principle 3.
-- Principle 11, Distribution (paragraphs 72-73): the right people receive the report, and confidentiality holds.
-
-Each row in the diagram is the field check, the data-quality dimension, and the BCBS 239 principle that check supports. Principle 3 is drawn twice, once for Accuracy and once for Validity. Principles 6, 7, and 11 are the lower group.
-
-```mermaid
-flowchart TB
-  subgraph mapped ["Field check, dimension, and the principle it supports"]
-    transactionId["transaction_id populated"] --> completeness["Completeness"]
-    completeness -->|supports| principle4["Principle 4, Completeness"]
-    amountRange["amount present, 0 to 1000000"] --> accuracy["Accuracy"]
-    accuracy -->|supports| principle3["Principle 3, Accuracy and Integrity"]
-    currencyList["currency EUR, USD, or GBP"] --> validity["Validity, DQ dimension"]
-    validity -->|supports| principle3Again["Principle 3, Accuracy and Integrity"]
-    timestampCut["timestamp parses, on or after 2023-01-01"] --> timeliness["Timeliness"]
-    timeliness -->|supports| principle5["Principle 5, Timeliness"]
-  end
-  subgraph notYet ["Not implemented"]
-    principle6["Principle 6, Adaptability"]
-    principle7["Principle 7, Accuracy of reports"]
-    principle11["Principle 11, Distribution"]
-    principle6 ~~~ principle7 ~~~ principle11
-  end
-  mapped -.->|"no check in this code"| notYet
-  classDef pending stroke-dasharray:5 4,stroke:#666
-  class principle6,principle7,principle11 pending
-```
-
-Each check rejects nulls in the field it owns. A null amount fails Accuracy. A missing required column stops the audit before the checks run. An empty frame fails every check. The audit copies the frame and leaves the caller's data unchanged.
-
-### Rows in the synthetic file
-
-| transaction_id | Designed result |
-| --- | --- |
-| 101 | Passes all four checks |
-| 102 | Accuracy fails (amount -50) |
-| null | Completeness fails, and Timeliness fails (2022-01-01) |
-| 104 | Validity fails (currency XYZ) |
-| 105 | Accuracy fails (amount 9999999) |
-
-Run on the whole file, all four checks fail.
+`openlineage.json` is one COMPLETE event. It fills `dataQualityMetrics` (null count, count, distinct count, and sum/min/max on exposure) and `dataQualityAssertions` (one assertion per rule). It is a minimal document in the shape of the public OpenLineage facets. It is not a Marquez client and it does not talk to a server.
 
 ## Disparate impact
 
@@ -166,43 +163,104 @@ AIF360's `BinaryLabelDatasetMetric.disparate_impact` is:
 
 $$DI = \frac{P(\text{loan approved} \mid \text{unprivileged})}{P(\text{loan approved} \mid \text{privileged})}$$
 
-In this file, `age_category` 1 is the unprivileged group (the demo label is Senior) and `age_category` 2 is the privileged group (the demo label is Junior). Those labels belong to the synthetic file. On that file the unprivileged group has no approvals and the privileged group does, so the ratio is 0.00.
+`age_category` 1 is the unprivileged group in this demo (label `40_and_over`). `age_category` 2 is the privileged group (label `under_40`). Those labels are synthetic. They are not a legal age classification.
 
-The PDF treats a ratio below 0.80 as a fail. 0.80 is the US EEOC four-fifths rule, used here as a demo cutoff. The EU AI Act does not define that cutoff. The metric is an illustration next to Article 10 (data and data governance). It is not an Article 13 transparency pack, and it is not a conformity assessment.
+The PDF and the dashboard treat a ratio below 0.80 as a fail against the US EEOC four-fifths rule of thumb. That figure is a heuristic here. It is not a threshold in the EU AI Act, and it is not an EU legal requirement. The metric sits next to Article 10 (data and data governance). It is not an Article 13 transparency file, and it is not a conformity assessment.
 
-Rows missing `age_category` or `loan_approved` are dropped from the metric. A null `transaction_id` does not drop the row.
+Rows are dropped only when `age_category` or `loan_approved` is missing. A null in any other column, including `transaction_id`, stays in the metric. If either group has no complete row, the audit raises instead of returning a silent NaN. If the privileged selection rate is zero, the ratio is undefined and the status is `UNDEFINED`.
 
-TensorFlow is not installed or imported. AIF360's TensorFlow extra is only for adversarial debiasing, which this prototype does not run. Import notices for other optional AIF360 extras are filtered out of the log. The root log level stays at the level you set.
+TensorFlow is not installed or imported. AIF360's TensorFlow extra is only for adversarial debiasing, which this prototype does not run.
+
+## BCBS 239
+
+Principle numbers follow the Basel Committee on Banking Supervision, *Principles for effective risk data aggregation and risk reporting* (BCBS 239), January 2013: <https://www.bis.org/publ/bcbs239.pdf>.
+
+A pass on a rule is the field check. It is narrower than the principle it supports.
+
+| Principle | Paragraphs used here | What this prototype actually does |
+| --- | --- | --- |
+| 2 Data architecture and IT infrastructure | 33, and 34 for named owners | Glossary, single identifiers for legal entity and counterparty, owner and steward on every rule |
+| 3 Accuracy and Integrity | 36, including 36(c) and 36(d), 37, 40 | Range, uniqueness, referential check, dictionary lists, IQR screen, reconciliation to the transaction sum |
+| 4 Completeness | 41-43 | Not-null rules, and a legal-entity identifier so the book can be cut by entity |
+| 5 Timeliness | 44-47 | Business-day lag from reporting date to availability date. The deadline is the demo's, not the Committee's |
+| 6 Adaptability | 49(a) only | One aggregate grain. Not paragraph 50 |
+| 7 Accuracy | 53(a) and the idea of 53(b) | The tie-out, and the rule inventory as a validation list. Not a board report |
+| 11 Distribution | 72-73 | Not implemented |
+
+```mermaid
+flowchart TB
+  subgraph measured ["Measured in this repository"]
+    identifiers["Legal entity and counterparty identifiers"] --> principle2["Principle 2, paragraph 33"]
+    dictionary["Glossary and domain lists"] --> principle3dict["Principle 3, paragraph 37"]
+    reconcile["Transaction sum versus reported total"] --> principle3rec["Principle 3, paragraph 36(c)"]
+    reconcile --> principle7["Principle 7, paragraph 53(a)"]
+    populated["Not-null rules on identifiers and amounts"] --> principle4["Principle 4"]
+    lag["Reporting date versus availability date"] --> principle5["Principle 5"]
+    grain["One exposure aggregate"] --> principle6["Principle 6, paragraph 49(a)"]
+  end
+  subgraph notYet ["Not implemented"]
+    paragraph50["Principle 6, paragraph 50, on-demand subsets"]
+    board["Principle 7, paragraphs 52 and 54-56, a board risk report"]
+    principle11["Principle 11, Distribution"]
+  end
+```
+
+## Modules
+
+```mermaid
+flowchart LR
+  mainPy["main.py"]
+  cli["python -m governance_sentinel"]
+  pipeline["governance_sentinel.pipeline"]
+  synthetic["governance_sentinel.synthetic"]
+  rulesPy["governance_sentinel.rules"]
+  lineagePy["governance_sentinel.lineage"]
+  catalogPy["governance_sentinel.catalog"]
+  biasPy["bias_audit.py"]
+  reporterPy["reporter.py"]
+  app["streamlit_app.py"]
+
+  mainPy --> pipeline
+  cli --> pipeline
+  pipeline --> synthetic
+  pipeline --> rulesPy
+  pipeline --> lineagePy
+  pipeline --> catalogPy
+  pipeline --> biasPy
+  pipeline --> reporterPy
+  app --> synthetic
+  app --> rulesPy
+  app --> lineagePy
+  app --> catalogPy
+  app --> biasPy
+```
+
+`validators.py` and `data_loader.py` still hold the original five-row field checks. `python main.py` does not call them. Column lists and the stops are in [docs/architecture.md](docs/architecture.md).
 
 ## Roadmap
 
-There is no GitHub Project board on this repository. This list is the roadmap.
+Shipped: the seeded book and its defect manifest, the YAML rules including referential, T+1, and the IQR screen, the PDF scorecard, the glossary, lineage with downstream status, the reconciliation, a minimal OpenLineage event, the disparate-impact audit, the CLI, and the Streamlit app.
 
-In the repository now: the four checks, the disparate-impact ratio, the PDF, and a CSV reader.
-
-Left out on purpose: a dashboard, data lineage, a rules catalog, automated fixes, and loaders other than CSV.
+Still out, on purpose: automated fixes, a loader other than CSV, a running OpenLineage or Marquez server, an on-demand aggregate for a supervisory query (Principle 6, paragraph 50), a board risk report (the rest of Principle 7), and distribution controls (Principle 11).
 
 ```mermaid
 flowchart TB
   subgraph shipped ["In the repository"]
-    csvReader["CSV reader, mock and real"]
-    fourChecks["Four data-quality checks"]
-    ratio["Disparate-impact ratio"]
-    pdfReport["PDF report"]
-    csvReader ~~~ fourChecks ~~~ ratio ~~~ pdfReport
+    book["Seeded risk book"]
+    yamlRules["YAML rules and thresholds"]
+    lineageBox["Lineage, glossary, reconciliation"]
+    pdfBox["PDF and OpenLineage JSON"]
+    dashboard["Streamlit scorecard"]
   end
   subgraph backlog ["Backlog"]
-    dashboard["Dashboard"]
-    lineage["Data lineage"]
-    catalog["Rules catalog"]
     fixes["Automated fixes"]
     otherLoaders["Loaders other than CSV"]
-    dashboard ~~~ lineage ~~~ catalog ~~~ fixes ~~~ otherLoaders
+    marquez["An OpenLineage server"]
+    adHoc["On-demand subsets, Principle 6 paragraph 50"]
+    distribution["Principle 11, Distribution"]
   end
   shipped -.->|"left out on purpose"| backlog
 ```
-
-Items in a row are peers. The dotted link uses the same words as the list above. Data lineage and the rules catalog are in the backlog group. The diagram has no dates.
 
 ## Checks
 
@@ -218,51 +276,37 @@ GitHub Actions runs those commands on Python 3.12 (`.github/workflows/ci.yml`).
 
 ## Changelog
 
-### [1.2.0] — 2026-10-23
-
-#### Fixed
-
-- PDF generation. Core Helvetica cannot encode check marks, crosses, an em dash, or box-drawing characters, so `python main.py` exited at the PDF step. The report is ASCII. The fpdf2 `ln` argument and the Arial font alias are gone.
-- BCBS 239 numbers in the validators, the PDF, and this file. Completeness supports Principle 4, the amount check supports Principle 3, and timeliness supports Principle 5. Validity is described as a data-quality dimension under Principle 3.
-- The report clock is timezone-aware UTC.
-- `FRAMEWORK_VERSION` is `1.2.0`, the same version as this section.
-- The root log level is `--log-level` or `LOG_LEVEL`, default INFO.
-- `--mode real` works from the command line.
-- Comments, log lines, and CLI text are in English.
+### [2.0.0]
 
 #### Added
 
-- pytest coverage for each designed PASS/FAIL on the synthetic rows, plus an end-to-end run that writes a PDF.
-- GitHub Actions workflow for ruff, mypy, and pytest, and the CI badge above.
-- MIT `LICENSE`.
-- `.gitignore` for caches, logs, and generated PDFs, with `Audit_Report.pdf` kept as the sample.
-- Exact dependency pins in `requirements.txt` and `requirements-dev.txt`.
-- `docs/audit_report_preview.png`.
+- Seeded risk-transaction generator, a 150-row committed sample, and a counterparty master. Defect rates are documented and tested.
+- YAML rules with rows checked, rows failed, pass percentage, threshold, PASS or FAIL, and sample failing ids.
+- Referential orphan check, business-day T+1 timeliness check, and an interquartile-range outlier screen.
+- PDF scorecard, remediation, run id, and SHA-256 of the input file.
+- Business glossary exported as JSON and CSV. Technical lineage from source to staging to aggregate, with status pushed downstream. Mermaid from the metadata, and a networkx graph.
+- Reconciliation of the transaction sum to a reported total, with one injected 250,000 break on LE-UK EUR.
+- One OpenLineage COMPLETE event.
+- `python -m governance_sentinel audit` and `generate`, with `python main.py` kept.
+- Streamlit dashboard and Community Cloud entry instructions.
+- Fairness audit that drops a row only for a missing protected attribute or label, and that raises on an empty group.
 
-### [1.1.0] — 2026-05-24
+#### Changed
 
-#### Fixed
+- The 0.80 cutoff is described as the US EEOC four-fifths heuristic. It is not presented as an EU requirement.
+- Framework version is 2.0.0.
 
-- `validators.py` copies the frame before the checks.
-- Each check rejects nulls in the field it assesses. A missing required column aborts the audit. (An earlier note said a separate null sweep covered every critical element before the domain checks. The null rule lives inside each check.)
-- `main.py` logs the traceback on failure.
-- The PDF gained a timestamp and a version line. The clock was still a naive local time labelled UTC until 1.2.0, and the version line stayed at 1.0.0 until 1.2.0.
+### [1.2.0] - 2026-10-23
 
-#### Added
+ASCII PDF, corrected BCBS 239 principle numbers, UTC timestamps, pytest, and GitHub Actions. The field checks in that release are the four boolean checks that `validators.py` still runs.
 
-- `data_loader.py` accepts `mode='mock'` or `mode='real'` and checks `REQUIRED_COLUMNS` on a CSV. The command-line flag was added in 1.2.0. There is no database or API loader.
-- The PDF names a principle beside each check. Those numbers were corrected in 1.2.0.
-- The PDF calls out a disparate-impact ratio of 0.00 on the synthetic file.
-- Logging goes to the console and to `governance_sentinel.log`.
-- `requirements.txt` was added here. The versions were ranges. Exact pins are in 1.2.0.
+### [1.1.0] - 2026-05-24
 
-### [1.0.0] — 2026-05-01
+The audit copies the frame. Nulls fail the check that owns the field. Logging goes to the console and to a file.
 
-#### Added
+### [1.0.0] - 2026-05-01
 
-- Data-quality checks for completeness, accuracy, validity, and timeliness, plus a synthetic file with known failures. The release note originally cited BCBS 239 Principles 3, 4, 6, and 11. That citation was wrong; see 1.2.0.
-- Disparate-impact audit through IBM AIF360.
-- PDF report through fpdf2.
+First data-quality checks, the AIF360 ratio, and a PDF. An early note cited the wrong principle numbers. 1.2.0 corrected them.
 
 ## License
 
