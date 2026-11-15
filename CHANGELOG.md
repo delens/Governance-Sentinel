@@ -58,7 +58,7 @@ note for that version. It is not a published GitHub release.
   `docs/column_lineage.mmd` is generated from the same edges.
   `column_lineage.json` and `column_lineage.csv` are written beside the
   glossary export.
-- `docs/case-study.md` and `docs/release-notes-v2.0.0.md`.
+- `docs/release-notes-v2.0.0.md`.
 
 ### Changed
 

@@ -311,7 +311,7 @@ GitHub Actions runs those commands on Python 3.12 (`.github/workflows/ci.yml`).
 
 The version in the code is 2.0.0. The history is in [CHANGELOG.md](CHANGELOG.md). No git tag has been created for it.
 
-A case study on the synthetic book is in [docs/case-study.md](docs/case-study.md). Notes ready for a GitHub release are in [docs/release-notes-v2.0.0.md](docs/release-notes-v2.0.0.md). This repository does not publish that release.
+Notes ready for a GitHub release are in [docs/release-notes-v2.0.0.md](docs/release-notes-v2.0.0.md). This repository does not publish that release.
 
 ## License
 
