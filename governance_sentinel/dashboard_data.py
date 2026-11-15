@@ -16,6 +16,7 @@ from governance_sentinel.history import StoredRun, load_kpi_runs, read_history
 from governance_sentinel.lineage import LineageReport, build_lineage
 from governance_sentinel.logging_config import install_optional_extra_filter
 from governance_sentinel.models import FairnessResult, RuleResult
+from governance_sentinel.ownership import OwnershipMatrix, load_ownership
 from governance_sentinel.rules import evaluate_rules, load_rules
 from governance_sentinel.synthetic import TRANSACTION_COLUMNS
 
@@ -29,6 +30,7 @@ class DashboardData:
     fairness: FairnessResult
     lineage: LineageReport
     glossary: Glossary
+    ownership: OwnershipMatrix
     history: tuple[dict[str, object], ...]
     kpi_runs: tuple[StoredRun, ...]
     source_name: str
@@ -46,6 +48,7 @@ def load_dashboard(root: Path) -> DashboardData:
     reference = pd.read_csv(root / "data" / "counterparties.csv")
     rules = tuple(evaluate_rules(frame, ruleset, {"counterparties": reference}))
     glossary = load_glossary(root / "catalog" / "glossary.yml", ruleset)
+    ownership = load_ownership(root / "governance" / "ownership.yml", glossary, ruleset)
     lineage = build_lineage(frame, list(rules), inject_break=True)
     from bias_audit import audit_fairness
 
@@ -57,6 +60,7 @@ def load_dashboard(root: Path) -> DashboardData:
         fairness=fairness,
         lineage=lineage,
         glossary=glossary,
+        ownership=ownership,
         history=history,
         kpi_runs=load_kpi_runs(root),
         source_name=transactions.name,

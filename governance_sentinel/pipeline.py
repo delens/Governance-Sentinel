@@ -21,6 +21,7 @@ import pandas as pd
 from governance_sentinel.catalog import export_glossary, load_glossary
 from governance_sentinel.history import DEFAULT_HISTORY_DB, HistoryStore, snapshot_run
 from governance_sentinel.lineage import build_lineage, openlineage_event, write_lineage_artifacts
+from governance_sentinel.ownership import export_ownership, load_ownership
 from governance_sentinel.rules import evaluate_rules, load_rules
 from governance_sentinel.synthetic import (
     DEFAULT_ROWS,
@@ -36,6 +37,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RULES = REPO_ROOT / "rules" / "dq_rules.yml"
 DEFAULT_COUNTERPARTIES = REPO_ROOT / "data" / "counterparties.csv"
 DEFAULT_GLOSSARY = REPO_ROOT / "catalog" / "glossary.yml"
+DEFAULT_OWNERSHIP = REPO_ROOT / "governance" / "ownership.yml"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -76,6 +78,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--glossary",
         default=str(DEFAULT_GLOSSARY),
         help="Business glossary YAML.",
+    )
+    parser.add_argument(
+        "--ownership",
+        default=str(DEFAULT_OWNERSHIP),
+        help="Data ownership matrix YAML.",
     )
     parser.add_argument(
         "--rows",
@@ -178,7 +185,10 @@ def execute(args: argparse.Namespace) -> str:
     event = openlineage_event(run_id, loaded, rule_results)
     output_dir = Path(str(args.output)).resolve().parent
     glossary = load_glossary(str(args.glossary), ruleset)
+    ownership_path = getattr(args, "ownership", None) or str(DEFAULT_OWNERSHIP)
+    ownership = load_ownership(str(ownership_path), glossary, ruleset)
     export_glossary(glossary, output_dir / "glossary.json", output_dir / "glossary.csv")
+    export_ownership(ownership, output_dir / "ownership.csv")
     write_lineage_artifacts(lineage, event, output_dir, glossary.terms)
     logger.info(
         "Reconciliation %s. Aggregate status %s.",
@@ -219,6 +229,7 @@ def execute(args: argparse.Namespace) -> str:
         dataset_name=str(csv_path),
         lineage=lineage,
         trend=trend,
+        ownership=ownership,
     )
     logger.info("Pipeline completed successfully.")
     logger.info("Files: %s | %s", args.output, args.log_file)

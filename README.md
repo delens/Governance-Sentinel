@@ -4,7 +4,9 @@
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB)](https://www.python.org/downloads/release/python-3120/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A compliance-as-code prototype for a data-governance review: declarative data-quality rules on a seeded book of risk transactions, mapped to BCBS 239, with a business glossary, technical and column lineage, a transaction-to-aggregate reconciliation, a local history of principle scores, a disparate-impact illustration, a PDF, and a Streamlit scorecard.
+![Dashboard walkthrough: scorecard, trend, lineage, glossary, ownership, and fairness](docs/img/dashboard-demo.gif)
+
+A compliance-as-code prototype for a data-governance review: declarative data-quality rules on a seeded book of risk transactions, mapped to BCBS 239, with a business glossary, an ownership matrix of roles, technical and column lineage, a transaction-to-aggregate reconciliation, a local history of principle scores, a one-page executive summary, file exports for DataHub and Collibra, a disparate-impact illustration, a full PDF, and a Streamlit scorecard.
 
 **Notice.** Personal research sandbox. The data is synthetic. This project is not affiliated with any employer, client, or production system. The full notice is at the end of this file.
 
@@ -22,7 +24,10 @@ python -m governance_sentinel audit --input data/sample_transactions.csv --rules
 
 | Command | What it writes |
 | --- | --- |
-| `python main.py` | `data/generated_transactions.csv`, `Audit_Report.pdf`, `lineage.mmd`, `lineage.json`, `openlineage.json`, `column_lineage.json`, `column_lineage.csv`, `glossary.json`, `glossary.csv`, `reconciliation.csv`, `history/governance_history.duckdb`, `governance_sentinel.log` |
+| `python main.py` | `data/generated_transactions.csv`, `Audit_Report.pdf`, `lineage.mmd`, `lineage.json`, `openlineage.json`, `column_lineage.json`, `column_lineage.csv`, `glossary.json`, `glossary.csv`, `ownership.csv`, `reconciliation.csv`, `history/governance_history.duckdb`, `governance_sentinel.log` |
+| `python -m governance_sentinel exec-summary --input data/sample_transactions.csv --out Executive_Summary.pdf` | One A4 page: a red / amber / green light per scored principle (Principle 11 is not measured), the overall score, the delta versus the latest stored run when `history/governance_history.duckdb` already has runs, the top three open risks, the accountable role from the ownership matrix, and a due date for each action. It does not append a run. |
+| `python -m governance_sentinel export-catalog --target datahub --out catalog_export` | `catalog_export/datahub_mcp.json`. Metadata Change Proposals for datasets, fields, glossary terms, ownership, and column lineage. No network call. |
+| `python -m governance_sentinel export-catalog --target collibra --out catalog_export` | `catalog_export/collibra_assets.csv` and `catalog_export/collibra_import.json`. Business terms, data elements, role names, and the represents relation. No network call. |
 | `python -m governance_sentinel generate --rows 4000 --seed 239 --out data/generated_transactions.csv` | A seeded extract and a copy of the counterparty master. No audit. |
 | `python main.py --mode real --csv data/sample_transactions.csv` | Reads a CSV. It does not regenerate it. |
 | `python -m governance_sentinel seed-history` | Twelve weekly runs in the DuckDB file. Defect scale and the reconciliation break change by week. The run ids and timestamps are fixed. |
@@ -31,25 +36,28 @@ python -m governance_sentinel audit --input data/sample_transactions.csv --rules
 
 `--history-db` changes the DuckDB path (default `history/governance_history.duckdb`). The database is gitignored. DuckDB is one local file and the history is a small analytical table, scores by principle over time, so the queries are SQL. SQLite would avoid a new dependency. DuckDB is pinned in `requirements.txt` and there is no server. `--log-level` sets the root logger (default `INFO`, or the `LOG_LEVEL` environment variable).
 
-`runs/kpi_demo.json` is the same twelve-week series, committed so the dashboard can chart it before a local database exists. A non-empty database replaces that demo on the Trend page.
+`runs/kpi_demo.json` is the same twelve-week series, committed so the dashboard can chart it before a local database exists. A non-empty database replaces that demo on the Trend page. A missing or empty DuckDB file, which is the case on Streamlit Community Cloud, leaves the demo series in place. The audit does not create that file when `--no-history` is set.
 
 ## Dashboard
 
-The scorecard, the trend, the lineage graph, the glossary, the fairness result, and a PDF download are in `streamlit_app.py`.
+The scorecard, the trend, the lineage graph, the glossary, the ownership matrix, the fairness result, the full PDF, and the one-page summary are in `streamlit_app.py`.
 
 ```bash
 streamlit run streamlit_app.py
 ```
 
-The app opens on the committed 150-row sample, the six-point history in `runs/history.jsonl`, and the twelve-week principle series in `runs/kpi_demo.json`. It does not need an API key.
+The app opens on the committed 150-row sample, the six-point history in `runs/history.jsonl`, and the twelve-week principle series in `runs/kpi_demo.json`. It does not need an API key. It does not need a local DuckDB file.
 
-Streamlit Community Cloud can run this repository as it is:
+Live demo URL: coming soon.
+
+Streamlit Community Cloud can run this repository from `main`:
 
 - Main file path: `streamlit_app.py`
 - Requirements file: `requirements.txt`
-- Python version: 3.12
+- Python version: 3.12 (`runtime.txt` and `.python-version`)
+- `.streamlit/config.toml` turns usage stats off and leaves the port and address for Cloud to set
 
-This repository does not deploy the app and does not create an account.
+This repository does not deploy the app and does not create an account. The GIF above is a headless walkthrough of that app against the committed sample and the demo history. `scripts/record_dashboard_gif.py` records it with Playwright. Playwright is not a runtime dependency.
 
 ![Scorecard on the committed sample](docs/dashboard_scorecard.png)
 
@@ -65,7 +73,9 @@ This repository does not deploy the app and does not create an account.
 
 ![Reconciliation and disparate-impact section](docs/audit_report_reconciliation.png)
 
-`Audit_Report.pdf` in the repository root is the output of `python main.py` (4,000 rows, seed 239). A later run overwrites it. The PDF carries the run id, the SHA-256 of the input file, the scorecard (rows checked, rows failed, pass percentage, minimum pass percentage, PASS or FAIL), remediation with sample failing ids, the reconciliation, and the fairness result. When the history database already holds an earlier run, the PDF adds a short trend against that run. The first run in an empty database does not.
+`Audit_Report.pdf` in the repository root is the output of `python main.py` (4,000 rows, seed 239). A later run overwrites it. The PDF carries the run id, the SHA-256 of the input file, the scorecard (rows checked, rows failed, pass percentage, minimum pass percentage, PASS or FAIL), remediation with sample failing ids, the ownership-matrix owner and steward for each failed rule, the reconciliation, and the fairness result. When the history database already holds an earlier run, the PDF adds a short trend against that run. The first run in an empty database does not.
+
+`Executive_Summary.pdf` is a separate one-page file from `exec-summary`. It is not the multi-page audit. Red means the control failed. Amber means it passed and the score is under 99. Green means it passed and the score is at least 99. Principle 11 is marked not measured. The overall score can stay high while a principle is red. The top risks are a failed reconciliation, when there is one, then the field rules furthest under their threshold. The 250000 LE-UK EUR gap is injected, and the page says so. Due dates are 14, 21, and 30 days after the UTC date of the run. The accountable name on each risk is a role from `governance/ownership.yml`.
 
 ## Pipeline
 
@@ -74,12 +84,21 @@ flowchart TD
   start["python main.py or python -m governance_sentinel audit"] --> load["Load a seeded extract or a CSV"]
   load --> rules["Evaluate rules/dq_rules.yml"]
   rules --> fairness["Disparate-impact ratio"]
-  fairness --> lineage["Lineage, glossary export, reconciliation"]
+  fairness --> lineage["Lineage, glossary, ownership matrix"]
   lineage --> history["DuckDB history, unless --no-history"]
-  history --> pdf["PDF, Mermaid, OpenLineage JSON"]
+  history --> pdf["PDF, Mermaid, OpenLineage JSON, ownership.csv"]
 ```
 
-A failed rule does not stop the run. A missing file, a missing column, or an empty fairness group does. `main` logs the traceback and exits 1.
+A failed rule does not stop the run. A missing file, a missing column, an empty fairness group, or an ownership row that does not match the glossary does. `main` logs the traceback and exits 1.
+
+```mermaid
+flowchart LR
+  execCmd["exec-summary"] --> onePage["One A4 executive PDF"]
+  exportCmd["export-catalog"] --> datahubFile["DataHub MCP JSON"]
+  exportCmd --> collibraFile["Collibra CSV and JSON"]
+```
+
+`exec-summary` and `export-catalog` do not run the audit flow above. The catalog files are described in [docs/catalog-export.md](docs/catalog-export.md). They are not loaded into a DataHub or Collibra server.
 
 ## What a rule records
 
@@ -185,6 +204,8 @@ Principle 2, footnote 16, is about automated reconciliation where more than one 
 
 `catalog/glossary.yml` links each business term to a CDE, a physical column, the DQ rules, and an owner. A term that cites a missing rule or a missing column is rejected at load. Each run writes `glossary.json` and `glossary.csv`.
 
+`governance/ownership.yml` is one row per glossary term: data owner, data steward, source system, criticality, tolerance, and the linked rules. The owner and the steward are roles. The tolerance is the lowest minimum pass percentage of those rules. Load fails when a glossary term has no row, a cited rule does not exist, or the tolerance does not match the rules. Each audit writes `ownership.csv`. The dashboard has the same table and a CSV download. The full PDF names that owner on every failed rule.
+
 ## Disparate impact
 
 AIF360's `BinaryLabelDatasetMetric.disparate_impact` is:
@@ -247,6 +268,9 @@ flowchart LR
   lineagePy["governance_sentinel.lineage"]
   historyPy["governance_sentinel.history"]
   catalogPy["governance_sentinel.catalog"]
+  ownershipPy["governance_sentinel.ownership"]
+  executivePy["governance_sentinel.executive"]
+  catalogExport["governance_sentinel.catalog_export"]
   biasPy["bias_audit.py"]
   reporterPy["reporter.py"]
   app["streamlit_app.py"]
@@ -254,17 +278,24 @@ flowchart LR
   mainPy --> pipeline
   cli --> pipeline
   cli --> historyPy
+  cli --> executivePy
+  cli --> catalogExport
   pipeline --> synthetic
   pipeline --> rulesPy
   pipeline --> lineagePy
   pipeline --> historyPy
   pipeline --> catalogPy
+  pipeline --> ownershipPy
   pipeline --> biasPy
   pipeline --> reporterPy
+  executivePy --> ownershipPy
+  catalogExport --> ownershipPy
+  catalogExport --> catalogPy
   app --> rulesPy
   app --> lineagePy
   app --> historyPy
   app --> catalogPy
+  app --> ownershipPy
   app --> biasPy
 ```
 
@@ -272,9 +303,9 @@ flowchart LR
 
 ## Roadmap
 
-Shipped: the seeded book and its defect manifest, the YAML rules including referential, T+1, and the IQR screen, the PDF scorecard, the glossary, dataset and column lineage, the reconciliation, one OpenLineage COMPLETE event with schema and columnLineage facets, a DuckDB history of principle scores, the disparate-impact audit, the CLI, and the Streamlit app.
+Shipped: the seeded book and its defect manifest, the YAML rules including referential, T+1, and the IQR screen, the PDF scorecard, the one-page executive summary, the glossary, the ownership matrix, dataset and column lineage, the reconciliation, one OpenLineage COMPLETE event with schema and columnLineage facets, DataHub and Collibra files, a DuckDB history of principle scores, the disparate-impact audit, the CLI, and the Streamlit app.
 
-Still out, on purpose: automated fixes, a loader other than CSV, a running OpenLineage or Marquez server, an on-demand aggregate for a supervisory query (Principle 6, paragraph 50), a board risk report (the rest of Principle 7), and distribution controls (Principle 11).
+Still out, on purpose: automated fixes, a loader other than CSV, a running OpenLineage or Marquez server, a live DataHub or Collibra instance, an on-demand aggregate for a supervisory query (Principle 6, paragraph 50), the rest of Principle 7 beyond the tie-out, and distribution controls (Principle 11). The one-page summary is not that board risk report.
 
 ```mermaid
 flowchart TB
@@ -282,13 +313,15 @@ flowchart TB
     book["Seeded risk book"]
     yamlRules["YAML rules and thresholds"]
     lineageBox["Lineage, glossary, column lineage"]
-    pdfBox["PDF, history, OpenLineage JSON"]
+    ownershipBox["Ownership matrix and one-page summary"]
+    pdfBox["PDF, history, OpenLineage JSON, catalog files"]
     dashboard["Streamlit scorecard and trend"]
   end
   subgraph backlog ["Backlog"]
     fixes["Automated fixes"]
     otherLoaders["Loaders other than CSV"]
     marquez["An OpenLineage server"]
+    catalogServer["A live DataHub or Collibra instance"]
     adHoc["On-demand subsets, Principle 6 paragraph 50"]
     distribution["Principle 11, Distribution"]
   end

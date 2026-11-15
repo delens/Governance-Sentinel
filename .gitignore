@@ -24,4 +24,7 @@ data/generated_*.csv
 # Local audit history. The committed demo series is runs/kpi_demo.json.
 *.duckdb
 
+# Local catalog files from `export-catalog`. The command writes them on demand.
+catalog_export/
+
 .DS_Store

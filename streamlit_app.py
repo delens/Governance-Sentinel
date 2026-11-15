@@ -6,12 +6,16 @@ Local run::
 
 Streamlit Community Cloud uses this file as the entry point and
 ``requirements.txt`` for the environment. The app reads the committed sample,
-rules, glossary, and run history. It does not call an external API.
+rules, glossary, ownership matrix, and run history. It does not call an
+external API. When ``history/governance_history.duckdb`` is missing or empty,
+the Trend page uses the committed series in ``runs/kpi_demo.json``.
 """
 
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
+from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -29,6 +33,7 @@ from governance_sentinel.column_lineage import (
     trace_glossary_term,
 )
 from governance_sentinel.dashboard_data import DashboardData, load_dashboard
+from governance_sentinel.executive import build_summary, write_executive_pdf
 from governance_sentinel.history import (
     StoredRun,
     compare_runs,
@@ -37,6 +42,7 @@ from governance_sentinel.history import (
     rule_status_frame,
 )
 from governance_sentinel.lineage import lineage_graph
+from governance_sentinel.ownership import ownership_records
 from governance_sentinel.rules import dimension_rollup
 from governance_sentinel.scores import DASHBOARD_PRINCIPLES
 from reporter import FRAMEWORK_VERSION, create_pdf_report
@@ -109,7 +115,8 @@ def _trend(data: DashboardData) -> None:
         "The six committed points in runs/history.jsonl use a fixed defect rate, "
         "so the dimension lines do not move. The disparate-impact ratio does. "
         "The principle chart uses history/governance_history.duckdb when that file "
-        "has runs, and otherwise the twelve-week demo in runs/kpi_demo.json."
+        "exists and has runs. A missing or empty file, including a Streamlit "
+        "Community Cloud deploy, uses the twelve-week demo in runs/kpi_demo.json."
     )
     frame = history_frame(list(data.history))
     if frame.empty:
@@ -367,6 +374,25 @@ def _glossary(data: DashboardData) -> None:
         st.write(f"`{ref.dataset}.{ref.column}`{suffix}")
 
 
+def _ownership(data: DashboardData) -> None:
+    st.subheader("Ownership matrix")
+    st.write(
+        "Each glossary term has a data owner and a data steward. Both are roles, "
+        "not named people. The tolerance is the lowest minimum pass percentage "
+        "of the linked rules. The same file is checked when the audit runs."
+    )
+    frame = pd.DataFrame(ownership_records(data.ownership))
+    st.dataframe(frame, hide_index=True, width="stretch")
+    buffer = StringIO()
+    frame.to_csv(buffer, index=False)
+    st.download_button(
+        "Download ownership CSV",
+        data=buffer.getvalue(),
+        file_name="ownership.csv",
+        mime="text/csv",
+    )
+
+
 def _fairness(data: DashboardData) -> None:
     st.subheader("Disparate impact")
     result = data.fairness
@@ -393,9 +419,11 @@ def _fairness(data: DashboardData) -> None:
 def _report(data: DashboardData) -> None:
     st.subheader("PDF report")
     st.write(
-        "The PDF includes the scorecard, remediation, the reconciliation, the "
-        "SHA-256 of the input when the command-line audit writes it, and this "
-        "fairness result. The download below is built from the sample on screen."
+        "The full PDF includes the scorecard, remediation with the ownership "
+        "matrix on each failed rule, the reconciliation, and this fairness "
+        "result. The one-page summary is the board view of the same sample. "
+        "It does not use the twelve-week series, because that series is a "
+        "different extract. Both downloads are built on screen."
     )
     with TemporaryDirectory() as temporary:
         path = Path(temporary) / "Audit_Report.pdf"
@@ -408,12 +436,34 @@ def _report(data: DashboardData) -> None:
             output_path=str(path),
             dataset_name=data.source_name,
             lineage=data.lineage,
+            ownership=data.ownership,
         )
         payload = path.read_bytes()
+        summary_path = Path(temporary) / "Executive_Summary.pdf"
+        summary = build_summary(
+            data.rules,
+            data.lineage.reconciliation,
+            data.ownership,
+            run_id="dashboard-sample",
+            run_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            dataset_name=data.source_name,
+            row_count=len(data.frame),
+            input_sha256="sample-not-hashed-in-the-view",
+            as_of=datetime.now(timezone.utc).date(),
+            previous=None,
+        )
+        write_executive_pdf(summary, str(summary_path))
+        summary_payload = summary_path.read_bytes()
     st.download_button(
         "Download PDF",
         data=payload,
         file_name="Audit_Report.pdf",
+        mime="application/pdf",
+    )
+    st.download_button(
+        "Download one-page executive summary",
+        data=summary_payload,
+        file_name="Executive_Summary.pdf",
         mime="application/pdf",
     )
 
@@ -421,7 +471,7 @@ def _report(data: DashboardData) -> None:
 def main() -> None:
     """Render the page selected in the sidebar."""
     data = _load()
-    pages = ("Scorecard", "Trend", "Lineage", "Glossary", "Fairness", "Report")
+    pages = ("Scorecard", "Trend", "Lineage", "Glossary", "Ownership", "Fairness", "Report")
     requested = st.query_params.get("page", "Scorecard")
     page = st.sidebar.radio(
         "View",
@@ -440,6 +490,8 @@ def main() -> None:
         _lineage(data)
     elif page == "Glossary":
         _glossary(data)
+    elif page == "Ownership":
+        _ownership(data)
     elif page == "Fairness":
         _fairness(data)
     else:

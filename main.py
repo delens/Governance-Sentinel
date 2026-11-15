@@ -4,8 +4,8 @@ Pipeline:
     1. Write a seeded synthetic extract, or read a CSV when ``--mode real``.
     2. Evaluate the YAML data-quality rules.
     3. Measure disparate impact on the synthetic approval label.
-    4. Reconcile transaction totals to the exposure aggregate and write lineage.
-    5. Write a PDF audit report.
+    4. Reconcile transaction totals, and write lineage, the glossary, and the ownership matrix.
+    5. Write a PDF audit report. The one-page summary is a separate command.
 
 Examples:
     python main.py

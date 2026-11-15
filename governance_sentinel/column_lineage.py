@@ -42,6 +42,12 @@ _OPENLINEAGE_TYPE: dict[str, tuple[str, str]] = {
     "filter": ("INDIRECT", "FILTER"),
 }
 
+
+def native_column_type(column: str) -> str:
+    """Schema type name for a known column. An unknown column is reported as string."""
+    return _COLUMN_TYPES.get(column, "string")
+
+
 _COLUMN_TYPES: dict[str, str] = {
     "record_id": "string",
     "transaction_id": "string",

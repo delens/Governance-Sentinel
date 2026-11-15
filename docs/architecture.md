@@ -14,6 +14,9 @@ flowchart LR
   lineagePy["lineage.py"]
   historyPy["history.py"]
   catalogPy["catalog.py"]
+  ownershipPy["ownership.py"]
+  executivePy["executive.py"]
+  catalogExport["catalog_export.py"]
   biasPy["bias_audit.py"]
   reporterPy["reporter.py"]
   app["streamlit_app.py"]
@@ -21,25 +24,32 @@ flowchart LR
   mainPy --> pipeline
   cli --> pipeline
   cli --> historyPy
+  cli --> executivePy
+  cli --> catalogExport
   pipeline --> synthetic
   pipeline --> rulesPy
   pipeline --> lineagePy
   pipeline --> historyPy
   pipeline --> catalogPy
+  pipeline --> ownershipPy
   pipeline --> biasPy
   pipeline --> reporterPy
+  executivePy --> ownershipPy
+  catalogExport --> ownershipPy
+  catalogExport --> catalogPy
   app --> rulesPy
   app --> lineagePy
   app --> historyPy
   app --> catalogPy
+  app --> ownershipPy
   app --> biasPy
 ```
 
 | Module | Role |
 | --- | --- |
 | `main.py` | `python main.py`. Logging, then the pipeline. |
-| `governance_sentinel/cli.py` | `audit`, `generate`, `history`, and `seed-history`. |
-| `governance_sentinel/pipeline.py` | Load, rules, fairness, lineage, glossary export, history, PDF. |
+| `governance_sentinel/cli.py` | `audit`, `generate`, `history`, `seed-history`, `exec-summary`, and `export-catalog`. |
+| `governance_sentinel/pipeline.py` | Load, rules, fairness, lineage, glossary and ownership export, history, PDF. |
 | `governance_sentinel/synthetic.py` | Seeded extract and the counterparty master. An optional defect-rate map changes the injection. |
 | `governance_sentinel/rules.py` | Load `rules/dq_rules.yml` and evaluate it. |
 | `governance_sentinel/lineage.py` | Aggregate, reconciliation, status propagation, Mermaid, networkx, OpenLineage event. |
@@ -47,6 +57,9 @@ flowchart LR
 | `governance_sentinel/history.py` | DuckDB run store, principle scores, and the twelve-week seed. |
 | `governance_sentinel/scores.py` | How each principle score is defined. |
 | `governance_sentinel/catalog.py` | Glossary load and JSON/CSV export. |
+| `governance_sentinel/ownership.py` | Ownership matrix load, checks, and CSV export. |
+| `governance_sentinel/executive.py` | One-page executive summary. |
+| `governance_sentinel/catalog_export.py` | DataHub MCP JSON and Collibra CSV/JSON. No network calls. |
 | `bias_audit.py` | Disparate-impact ratio through AIF360. |
 | `reporter.py` | PDF. `FRAMEWORK_VERSION` is the package version, 2.0.0. |
 | `validators.py` | Original four boolean field checks. Not called by the pipeline. |
@@ -75,6 +88,7 @@ flowchart LR
 | Fairness | `age_category` or `loan_approved` is absent, no complete row, or either demo group is empty. | A null in another column does not drop the row. A zero privileged selection rate returns status `UNDEFINED`. |
 | Lineage | The injected break has no LE-UK EUR slice to land on. | A failed reconciliation is a result, not an exception. |
 | Glossary | A term cites a rule, column, dataset, or principle that does not resolve. | |
+| Ownership | A glossary term has no row, a rule id is unknown, or the tolerance does not match the linked rules. | |
 | History | The DuckDB file cannot be written. | `--no-history` skips the write. A missing previous run omits the PDF trend section. |
 | PDF | An exception from writing the file. | |
 | `main` | Logs the traceback and exits 1 when a step raises. | The default file exits 0. |
@@ -108,4 +122,4 @@ The numbers follow BCBS 239 (Basel Committee, January 2013). The mapping table a
 
 ## Backlog
 
-The [roadmap](../README.md#roadmap) lists what is still out: automated fixes, a loader other than CSV, an OpenLineage server, on-demand subsets under Principle 6 paragraph 50, and Principle 11. Principle 11 is stored in the history as not measured.
+The [roadmap](../README.md#roadmap) lists what is still out: automated fixes, a loader other than CSV, an OpenLineage server, a live DataHub or Collibra instance, on-demand subsets under Principle 6 paragraph 50, and Principle 11. Principle 11 is stored in the history as not measured. The one-page summary is a control scorecard. It is not the board risk report in Principle 7, paragraphs 52 and 54-56.

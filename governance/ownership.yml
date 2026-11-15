@@ -1,0 +1,119 @@
+# Data ownership matrix for the critical data elements in the glossary.
+#
+# One row per glossary term. data_owner and data_steward are roles, not
+# named people. tolerance_threshold is the lowest minimum pass percentage
+# among the linked rules, in the same units as threshold in rules/dq_rules.yml.
+# source_system is the logical system in this prototype, not a live platform.
+#
+# The loader rejects a row whose term, CDE, owner, steward, or rule list
+# does not match catalog/glossary.yml, and a rule id that is not in
+# rules/dq_rules.yml.
+
+version: 1
+elements:
+  - term_id: transaction_identifier
+    cde: transaction_id
+    data_owner: Group Risk Data Office
+    data_steward: Transaction Data Steward
+    source_system: core_banking.transactions
+    criticality: high
+    tolerance_threshold: 99.5
+    dq_rule_ids:
+      - txn_id_populated
+      - txn_id_unique
+
+  - term_id: legal_entity
+    cde: legal_entity_id
+    data_owner: Group Risk Data Office
+    data_steward: Legal Entity Steward
+    source_system: core_banking.transactions
+    criticality: high
+    tolerance_threshold: 100.0
+    dq_rule_ids:
+      - legal_entity_domain
+
+  - term_id: counterparty
+    cde: counterparty_id
+    data_owner: Group Risk Data Office
+    data_steward: Counterparty Reference Steward
+    source_system: reference.counterparties
+    criticality: high
+    tolerance_threshold: 99.0
+    dq_rule_ids:
+      - counterparty_known
+
+  - term_id: gross_exposure
+    cde: exposure_amount
+    data_owner: Group Risk Data Office
+    data_steward: Credit Risk Data Steward
+    source_system: core_banking.transactions
+    criticality: high
+    tolerance_threshold: 99.0
+    dq_rule_ids:
+      - exposure_populated
+      - exposure_non_negative
+      - exposure_outlier
+
+  - term_id: aggregated_exposure
+    cde: exposure_amount
+    data_owner: Group Risk Data Office
+    data_steward: Regulatory Reporting Steward
+    source_system: risk_mart.exposure_by_entity
+    criticality: high
+    tolerance_threshold: 99.0
+    dq_rule_ids:
+      - exposure_populated
+      - exposure_non_negative
+
+  - term_id: booking_currency
+    cde: currency
+    data_owner: Group Risk Data Office
+    data_steward: Reference Data Steward
+    source_system: core_banking.transactions
+    criticality: high
+    tolerance_threshold: 99.0
+    dq_rule_ids:
+      - currency_populated
+      - currency_domain
+
+  - term_id: internal_rating
+    cde: internal_rating
+    data_owner: Group Risk Data Office
+    data_steward: Credit Risk Data Steward
+    source_system: core_banking.transactions
+    criticality: medium
+    tolerance_threshold: 98.0
+    dq_rule_ids:
+      - rating_populated
+      - rating_domain
+
+  - term_id: product_type
+    cde: product_type
+    data_owner: Group Risk Data Office
+    data_steward: Credit Risk Data Steward
+    source_system: core_banking.transactions
+    criticality: medium
+    tolerance_threshold: 100.0
+    dq_rule_ids:
+      - product_domain
+
+  - term_id: reporting_date
+    cde: reporting_date
+    data_owner: Group Risk Data Office
+    data_steward: Regulatory Reporting Steward
+    source_system: core_banking.transactions
+    criticality: high
+    tolerance_threshold: 98.0
+    dq_rule_ids:
+      - reporting_date_populated
+      - availability_t_plus_1
+
+  - term_id: availability_date
+    cde: availability_date
+    data_owner: Group Risk Data Office
+    data_steward: Regulatory Reporting Steward
+    source_system: core_banking.transactions
+    criticality: medium
+    tolerance_threshold: 98.0
+    dq_rule_ids:
+      - availability_t_plus_1

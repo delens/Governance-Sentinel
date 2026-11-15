@@ -21,6 +21,7 @@ from governance_sentinel import __version__
 from governance_sentinel.history import RunComparison
 from governance_sentinel.lineage import LineageReport
 from governance_sentinel.models import FairnessResult, RuleResult
+from governance_sentinel.ownership import OwnershipMatrix, ownership_sentence
 from governance_sentinel.rules import dimension_rollup
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ def create_pdf_report(
     dataset_name: str = "",
     lineage: LineageReport | None = None,
     trend: RunComparison | None = None,
+    ownership: OwnershipMatrix | None = None,
 ) -> None:
     """Write the audit PDF to ``output_path``.
 
@@ -148,6 +150,8 @@ def create_pdf_report(
             f"Principle {item.principle} ({item.principle_title}). "
             f"Owner: {item.owner}. Steward: {item.steward}.",
         )
+        if ownership is not None:
+            _paragraph(pdf, ownership_sentence(ownership, item.rule_id))
         _paragraph(
             pdf,
             f"Checked {item.records_checked}, failed {item.records_failed}, "
