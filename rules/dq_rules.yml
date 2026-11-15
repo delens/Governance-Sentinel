@@ -1,0 +1,319 @@
+# Data-quality rules for the staged risk-transaction extract.
+#
+# threshold is the minimum pass percentage. A rule PASSes only when at least
+# one record was checked and the pass percentage is at least the threshold.
+#
+# Principle numbers follow BCBS 239 (Basel Committee, January 2013,
+# https://www.bis.org/publ/bcbs239.pdf). A passing rule supports the cited
+# principle. It is not evidence that the principle is met.
+#
+# Validity is a data-quality dimension. It is not a BCBS 239 principle.
+# Domain rules support Principle 3, paragraph 37 (a dictionary of concepts).
+
+version: 1
+id_column: record_id
+rules:
+  - id: txn_id_populated
+    cde: transaction_id
+    column: transaction_id
+    dimension: completeness
+    rule_type: not_null
+    parameters: {}
+    threshold: 99.5
+    owner: Group Risk Data Office
+    steward: Transaction Data Steward
+    principle: "4"
+    principle_title: Completeness
+    description: >
+      transaction_id is populated. This supports Principle 4 (paragraphs 41-43),
+      which expects material risk data to be captured. A pass rate on one
+      identifier is not group-wide completeness.
+    remediation: >
+      Backfill transaction_id in the booking feed before the next reporting
+      date. List the remaining blanks as a completeness exception.
+
+  - id: txn_id_unique
+    cde: transaction_id
+    column: transaction_id
+    dimension: accuracy
+    rule_type: unique
+    parameters: {}
+    threshold: 99.5
+    owner: Group Risk Data Office
+    steward: Transaction Data Steward
+    principle: "3"
+    principle_title: Accuracy and Integrity
+    description: >
+      Non-missing transaction_id values are unique. Missing identifiers are
+      counted by txn_id_populated, not here. Duplicate keys break
+      reconciliation to the booking source (Principle 3, paragraph 36).
+    remediation: >
+      Resolve duplicate transaction_id values with the booking system. Keep
+      one authoritative row per identifier.
+
+  - id: exposure_populated
+    cde: exposure_amount
+    column: exposure_amount
+    dimension: completeness
+    rule_type: not_null
+    parameters: {}
+    threshold: 99.0
+    owner: Group Risk Data Office
+    steward: Credit Risk Data Steward
+    principle: "4"
+    principle_title: Completeness
+    description: >
+      exposure_amount is populated so the exposure can be aggregated.
+      Supports Principle 4 (paragraph 41).
+    remediation: >
+      Obtain the missing exposure amounts from the booking system. Do not
+      substitute a zero for an unknown amount.
+
+  - id: exposure_non_negative
+    cde: exposure_amount
+    column: exposure_amount
+    dimension: accuracy
+    rule_type: range
+    parameters:
+      min: 0
+    threshold: 99.0
+    owner: Group Risk Data Office
+    steward: Credit Risk Data Steward
+    principle: "3"
+    principle_title: Accuracy and Integrity
+    description: >
+      Non-missing exposure_amount is at least 0. This is a sign check, not a
+      statistical outlier test and not an accounting-materiality test.
+      Supports Principle 3 (paragraphs 36 and 40).
+    remediation: >
+      Correct negative exposure amounts at source. A negative gross exposure
+      is a booking defect in this dataset, not a hedge.
+
+  - id: exposure_outlier
+    cde: exposure_amount
+    column: exposure_amount
+    dimension: accuracy
+    rule_type: outlier
+    parameters:
+      method: iqr
+      k: 1.5
+      lower_bound: 0
+    threshold: 99.5
+    owner: Group Risk Data Office
+    steward: Credit Risk Data Steward
+    principle: "3"
+    principle_title: Accuracy and Integrity
+    description: >
+      Interquartile-range screen on exposure_amount values at or above 0.
+      Values below 0 are left to exposure_non_negative. This is a screening
+      heuristic, not a risk limit. Supports the accuracy monitoring expected
+      in Principle 3, paragraph 40.
+    remediation: >
+      Review the upper-fence breaks with the booking desk. Confirm spikes
+      before they enter the exposure aggregate.
+
+  - id: currency_populated
+    cde: currency
+    column: currency
+    dimension: completeness
+    rule_type: not_null
+    parameters: {}
+    threshold: 99.0
+    owner: Group Risk Data Office
+    steward: Reference Data Steward
+    principle: "4"
+    principle_title: Completeness
+    description: >
+      currency is populated. Aggregation by currency needs the code on every
+      row. Supports Principle 4.
+    remediation: >
+      Populate the ISO currency code from the booking system. Do not default
+      a blank to the legal entity's local currency.
+
+  - id: currency_domain
+    cde: currency
+    column: currency
+    dimension: validity
+    rule_type: domain
+    parameters:
+      allowed:
+        - EUR
+        - USD
+        - GBP
+        - CHF
+        - JPY
+    threshold: 99.0
+    owner: Group Risk Data Office
+    steward: Reference Data Steward
+    principle: "3"
+    principle_title: Accuracy and Integrity
+    description: >
+      Non-missing currency is one of EUR, USD, GBP, CHF, JPY. Validity is a
+      data-quality dimension, not a BCBS 239 principle. The allowed list is
+      the demo dictionary of concepts in Principle 3, paragraph 37.
+    remediation: >
+      Map the rejected currency codes onto the glossary list, or extend the
+      list if the code is a real booking currency.
+
+  - id: rating_populated
+    cde: internal_rating
+    column: internal_rating
+    dimension: completeness
+    rule_type: not_null
+    parameters: {}
+    threshold: 99.0
+    owner: Group Risk Data Office
+    steward: Credit Risk Data Steward
+    principle: "4"
+    principle_title: Completeness
+    description: >
+      internal_rating is populated. Supports Principle 4. NR is an allowed
+      grade for an unrated counterparty and is not a blank.
+    remediation: >
+      Replace blank ratings. Use NR only when the credit process has recorded
+      that the counterparty is unrated.
+
+  - id: rating_domain
+    cde: internal_rating
+    column: internal_rating
+    dimension: validity
+    rule_type: domain
+    parameters:
+      allowed:
+        - AAA
+        - AA
+        - A
+        - BBB
+        - BB
+        - B
+        - CCC
+        - D
+        - NR
+    threshold: 98.0
+    owner: Group Risk Data Office
+    steward: Credit Risk Data Steward
+    principle: "3"
+    principle_title: Accuracy and Integrity
+    description: >
+      Non-missing internal_rating is on the glossary scale. Validity is a
+      data-quality dimension supporting Principle 3, paragraph 37.
+    remediation: >
+      Replace grades that are not on the scale. Do not delete the row to make
+      the pass rate move.
+
+  - id: legal_entity_domain
+    cde: legal_entity_id
+    column: legal_entity_id
+    dimension: validity
+    rule_type: domain
+    parameters:
+      allowed:
+        - LE-FR
+        - LE-DE
+        - LE-UK
+        - LE-US
+        - LE-SG
+        - LE-CH
+    threshold: 100.0
+    owner: Group Risk Data Office
+    steward: Legal Entity Steward
+    principle: "2"
+    principle_title: Data architecture and IT infrastructure
+    description: >
+      legal_entity_id uses the group identifier list. Principle 2, paragraph
+      33, calls for single identifiers for legal entities. Principle 4 also
+      expects risk data by legal entity. This rule checks the identifier
+      domain only.
+    remediation: >
+      Add an unknown legal entity to the group identifier list before it is
+      used in the extract, or correct the code.
+
+  - id: product_domain
+    cde: product_type
+    column: product_type
+    dimension: validity
+    rule_type: domain
+    parameters:
+      allowed:
+        - LOAN
+        - DERIVATIVE
+        - SECURITY
+        - GUARANTEE
+    threshold: 100.0
+    owner: Group Risk Data Office
+    steward: Credit Risk Data Steward
+    principle: "3"
+    principle_title: Accuracy and Integrity
+    description: >
+      product_type is one of LOAN, DERIVATIVE, SECURITY, GUARANTEE. Demo
+      dictionary under Principle 3, paragraph 37.
+    remediation: >
+      Map the product code onto the glossary. A new product needs a glossary
+      change before it is treated as valid.
+
+  - id: counterparty_known
+    cde: counterparty_id
+    column: counterparty_id
+    dimension: accuracy
+    rule_type: referential
+    parameters:
+      reference_dataset: counterparties
+      reference_column: counterparty_id
+    threshold: 99.0
+    owner: Group Risk Data Office
+    steward: Counterparty Reference Steward
+    principle: "3"
+    principle_title: Accuracy and Integrity
+    description: >
+      counterparty_id is present and exists on the counterparty master. An
+      orphan is a break against that source. Principle 3, paragraph 36(c),
+      expects risk data to be reconciled with the bank's sources, and
+      paragraph 36(d) expects one authoritative source for each type of risk.
+      Principle 2, paragraph 33, is the related call for a single counterparty
+      identifier.
+    remediation: >
+      Match orphan counterparty_id values to the master, or add the
+      counterparty to the master before the next aggregation. Do not drop
+      the exposure to clear the break.
+
+  - id: availability_t_plus_1
+    cde: availability_date
+    column: availability_date
+    dimension: timeliness
+    rule_type: timeliness
+    parameters:
+      event_column: reporting_date
+      available_column: availability_date
+      max_lag_business_days: 1
+    threshold: 98.0
+    owner: Group Risk Data Office
+    steward: Regulatory Reporting Steward
+    principle: "5"
+    principle_title: Timeliness
+    description: >
+      availability_date is on the reporting date or the next business day
+      (T+1). The lag uses the numpy business-day calendar with the default
+      weekmask and no holiday calendar. Principle 5 (paragraphs 44-47) leaves
+      the real deadline to the bank. T+1 is the worked example in this demo,
+      not a supervisory SLA.
+    remediation: >
+      Deliver late records by reporting date plus one business day. Explain
+      any remaining lag in the timeliness exception log.
+
+  - id: reporting_date_populated
+    cde: reporting_date
+    column: reporting_date
+    dimension: completeness
+    rule_type: not_null
+    parameters: {}
+    threshold: 100.0
+    owner: Group Risk Data Office
+    steward: Regulatory Reporting Steward
+    principle: "5"
+    principle_title: Timeliness
+    description: >
+      reporting_date is populated. The timeliness lag is measured from this
+      date. Supports Principle 5.
+    remediation: >
+      Reject a row with no reporting date at the staging gate. The as-of
+      date is part of the aggregate grain.

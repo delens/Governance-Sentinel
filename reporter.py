@@ -1,41 +1,47 @@
-"""Write the one-page audit PDF.
+"""Write the audit PDF.
 
 The report uses Helvetica, a core PDF font limited to Latin-1. Status labels
 are ASCII (``PASS`` / ``FAIL``) so generation does not depend on a Unicode font.
+
+``threshold`` on each rule is the minimum pass percentage. A field-level PASS
+is not the same thing as compliance with the BCBS 239 principle the rule cites.
 """
 
 from __future__ import annotations
 
 import logging
 import math
-from collections.abc import Mapping
+from collections.abc import Sequence
 from datetime import datetime, timezone
 
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 
-from validators import (
-    AMOUNT_MAX,
-    AMOUNT_MIN,
-    APPROVED_CURRENCIES,
-    DQ_DIMENSIONS,
-    NOT_IMPLEMENTED,
-    TIMELINESS_REFERENCE_DATE,
-)
+from governance_sentinel import __version__
+from governance_sentinel.models import FairnessResult, RuleResult
+from governance_sentinel.principles import NOT_IMPLEMENTED
+from governance_sentinel.rules import dimension_rollup
 
 logger = logging.getLogger(__name__)
 
-# Keep this aligned with the changelog in README.md.
-FRAMEWORK_VERSION = "1.2.0"
+# Keep this aligned with governance_sentinel.__version__ and the changelog.
+FRAMEWORK_VERSION = __version__
 
-# US EEOC four-fifths rule, used only as an illustrative cutoff.
+# US EEOC four-fifths rule, used only as a heuristic cutoff.
 DI_THRESHOLD = 0.80
+
+_TABLE_WIDTHS = (42, 28, 24, 16, 16, 18, 18, 18)
 
 
 def create_pdf_report(
-    dq_results: Mapping[str, bool],
-    bias_score: float,
+    rule_results: Sequence[RuleResult],
+    fairness: FairnessResult,
+    *,
+    run_id: str,
+    dataset_sha256: str,
+    row_count: int,
     output_path: str = "Audit_Report.pdf",
+    dataset_name: str = "",
 ) -> None:
     """Write the audit PDF to ``output_path``.
 
@@ -47,7 +53,7 @@ def create_pdf_report(
     pdf = FPDF(format="A4")
     pdf.set_title("Governance-Sentinel Audit Report")
     pdf.set_author("Daniele Delens")
-    pdf.set_subject("BCBS 239 data-quality checks and a disparate-impact audit")
+    pdf.set_subject("BCBS 239 data-quality rules and a disparate-impact audit")
     pdf.set_margins(15, 15, 15)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
@@ -58,32 +64,102 @@ def create_pdf_report(
     _centered(pdf, f"Framework version: {FRAMEWORK_VERSION}", 5)
     _centered(pdf, f"Generated: {generated_at}", 5)
     _centered(pdf, "Reference: BCBS 239, Basel Committee, January 2013", 5)
+    pdf.ln(2)
+
+    _font(pdf, 11, "B")
+    _line(pdf, "Run", 6)
+    _font(pdf, 9)
+    _line(pdf, f"run_id: {run_id}", 5)
+    _line(pdf, f"Records: {row_count}", 5)
+    if dataset_name:
+        _paragraph(pdf, f"Dataset: {dataset_name}")
+    _paragraph(pdf, f"SHA-256: {dataset_sha256}")
+    pdf.ln(1)
+
+    _font(pdf, 13, "B")
+    _line(pdf, "1. Data-quality scorecard", 7)
+    _font(pdf, 9)
+    _paragraph(
+        pdf,
+        "Each rule is a field check on a critical data element. The threshold "
+        "is the minimum pass percentage. PASS means at least one record was "
+        "checked and the pass percentage is at least the threshold. A PASS on "
+        "one rule is not compliance with the BCBS 239 principle it supports. "
+        "Validity is a data-quality dimension. It is not a BCBS 239 principle. "
+        "The timeliness rule measures business-day lag from the reporting date "
+        "to the availability date. The demo limit is T+1. Principle 5 leaves "
+        "the real deadline to the bank. The exposure outlier rule is an "
+        "interquartile-range screen. It is a heuristic, not a risk limit.",
+    )
+
+    _font(pdf, 10, "B")
+    _line(pdf, "Dimension rollup", 6)
+    _font(pdf, 9)
+    for dimension, status, rule_count, failed_count in dimension_rollup(list(rule_results)):
+        _line(
+            pdf,
+            f"{dimension}: {status} ({failed_count} of {rule_count} rules failed)",
+            5,
+        )
+    pdf.ln(1)
+
+    headers = (
+        "Rule",
+        "CDE",
+        "Dimension",
+        "Checked",
+        "Failed",
+        "Pass %",
+        "Min %",
+        "Status",
+    )
+    _table_header(pdf, headers)
+    for item in rule_results:
+        _table_row(
+            pdf,
+            (
+                item.rule_id,
+                item.cde,
+                item.dimension,
+                str(item.records_checked),
+                str(item.records_failed),
+                f"{item.pass_pct:.2f}",
+                f"{item.threshold:.2f}",
+                item.status,
+            ),
+        )
     pdf.ln(3)
 
     _font(pdf, 13, "B")
-    _line(pdf, "1. BCBS 239 data-quality audit", 7)
-    _font(pdf, 10)
-    _paragraph(
-        pdf,
-        "Field-level checks on critical data elements. Principle numbers follow "
-        "BCBS 239 (BIS, January 2013). A PASS on one field is not the same as "
-        "compliance with the whole principle.",
-    )
-
-    for dimension in DQ_DIMENSIONS:
-        if dimension not in dq_results:
-            continue
-        _font(pdf, 11)
-        _line(pdf, _check_line(dimension, bool(dq_results[dimension])), 6)
+    _line(pdf, "2. Remediation", 7)
+    _font(pdf, 9)
+    failed_rules = [item for item in rule_results if item.status == "FAIL"]
+    if not failed_rules:
+        _paragraph(pdf, "No failed rule. No remediation item on this run.")
+    for item in failed_rules:
+        _font(pdf, 10, "B")
+        _line(pdf, f"{item.rule_id}: FAIL", 5)
         _font(pdf, 9)
-        _paragraph(pdf, _check_note(dimension))
-
-    for dimension, passed in dq_results.items():
-        if dimension in DQ_DIMENSIONS:
-            continue
-        logger.warning("No BCBS 239 mapping for dimension %s.", dimension)
-        _font(pdf, 11)
-        _line(pdf, f"[unmapped] {dimension}: {'PASS' if passed else 'FAIL'}", 6)
+        _paragraph(
+            pdf,
+            f"Principle {item.principle} ({item.principle_title}). "
+            f"Owner: {item.owner}. Steward: {item.steward}.",
+        )
+        _paragraph(
+            pdf,
+            f"Checked {item.records_checked}, failed {item.records_failed}, "
+            f"pass {item.pass_pct:.2f}%, minimum {item.threshold:.2f}%.",
+        )
+        if item.sample_failing_ids:
+            extra = len(item.failing_ids) - len(item.sample_failing_ids)
+            sample = ", ".join(item.sample_failing_ids)
+            suffix = f" (+{extra} more)" if extra > 0 else ""
+            _paragraph(pdf, f"Sample failing ids: {sample}{suffix}.")
+        _paragraph(pdf, item.description)
+        if item.detail:
+            _paragraph(pdf, item.detail)
+        _paragraph(pdf, f"Action: {item.remediation}")
+        pdf.ln(1)
 
     _font(pdf, 9)
     not_implemented = ", ".join(
@@ -91,35 +167,58 @@ def create_pdf_report(
     )
     _paragraph(
         pdf,
-        "Not implemented in this prototype: "
+        "Not implemented as a control in this report: "
         f"{not_implemented}. Principle 7 is about how accurately risk reports "
-        "convey aggregated data. It is separate from Principle 3.",
+        "convey aggregated data. It is separate from Principle 3. Principle 6 "
+        "is the ability to aggregate on demand. Principle 11 is distribution "
+        "and confidentiality. The rule inventory above is a validation list "
+        "of the kind paragraph 53(b) describes. Holding the list is not an "
+        "accurate risk report.",
     )
     pdf.ln(2)
 
     _font(pdf, 13, "B")
-    _line(pdf, "2. Algorithmic fairness (disparate impact)", 7)
-    _font(pdf, 10)
+    _line(pdf, "3. Algorithmic fairness (disparate impact)", 7)
+    _font(pdf, 9)
     _paragraph(
         pdf,
         "Illustrative bias measure for discussions of EU AI Act Article 10 "
-        "(data governance). This is not an Article 13 transparency file and "
-        "not a conformity assessment. The 0.80 cutoff is the US EEOC "
-        "four-fifths rule, which the EU AI Act does not itself prescribe.",
+        "(data and data governance). This is not an Article 13 transparency "
+        "file and not a conformity assessment. "
+        f"The {fairness.threshold:.2f} cutoff is the US EEOC four-fifths rule "
+        "of thumb. It is a heuristic for this demo. It is not a threshold in "
+        "the EU AI Act, and it is not an EU legal requirement.",
     )
-    _font(pdf, 11)
-    _line(pdf, f"Disparate impact ratio: {bias_score:.4f}", 6)
-    _line(pdf, f"Illustrative threshold: {DI_THRESHOLD:.2f} (US EEOC four-fifths rule)", 6)
-    _line(pdf, f"Status: {_di_status(bias_score)}", 6)
-    if bias_score == 0.0:
-        _font(pdf, 9)
-        _paragraph(
-            pdf,
-            "DI = 0.00 on this synthetic file: the unprivileged group "
-            "(age_category 1) has no positive labels and the privileged group "
-            "(age_category 2) does. That is a property of the demo data.",
-        )
-
+    _paragraph(
+        pdf,
+        "The ratio is P(loan approved | age_category 1) divided by "
+        "P(loan approved | age_category 2). In this synthetic file, "
+        "age_category 1 is the unprivileged group (label 40_and_over) and "
+        "age_category 2 is the privileged group (label under_40). Those labels "
+        "are not a legal age classification. Rows are excluded only when "
+        "age_category or loan_approved is missing. A null in another column, "
+        "including transaction_id, stays in the metric.",
+    )
+    _line(pdf, f"Rows excluded (missing group or label): {fairness.rows_excluded}", 5)
+    _line(
+        pdf,
+        "Unprivileged n="
+        f"{fairness.unprivileged_count}, selection rate {fairness.unprivileged_rate:.4f}",
+        5,
+    )
+    _line(
+        pdf,
+        f"Privileged n={fairness.privileged_count}, selection rate {fairness.privileged_rate:.4f}",
+        5,
+    )
+    ratio_text = f"{fairness.ratio:.4f}" if fairness.defined else "undefined"
+    _line(pdf, f"Disparate impact ratio: {ratio_text}", 5)
+    _line(
+        pdf,
+        f"Heuristic cutoff: {fairness.threshold:.2f} (US EEOC four-fifths rule)",
+        5,
+    )
+    _line(pdf, f"Status: {_fairness_status(fairness)}", 5)
     pdf.ln(3)
     y_position = pdf.get_y()
     pdf.set_draw_color(80, 80, 80)
@@ -138,43 +237,38 @@ def create_pdf_report(
     logger.info("PDF report written to %s.", output_path)
 
 
-def _di_status(bias_score: float) -> str:
-    if math.isnan(bias_score):
-        return "FAIL [SCORE UNDEFINED]"
-    if bias_score >= DI_THRESHOLD:
-        return "PASS"
-    return "FAIL [CRITICAL REMEDIATION REQUIRED]"
+def _fairness_status(fairness: FairnessResult) -> str:
+    if not fairness.defined or math.isnan(fairness.ratio):
+        return "UNDEFINED [privileged selection rate is zero, or the ratio is not finite]"
+    if fairness.ratio >= fairness.threshold:
+        return "PASS against the four-fifths heuristic"
+    return "FAIL against the four-fifths heuristic"
 
 
-def _check_line(dimension: str, passed: bool) -> str:
-    info = DQ_DIMENSIONS[dimension]
-    status = "PASS" if passed else "FAIL"
-    return f"[Principle {info['principle']} - {info['principle_title']}] {dimension}: {status}"
+def _table_header(pdf: FPDF, headers: tuple[str, ...]) -> None:
+    _font(pdf, 7, "B")
+    _cells(pdf, headers, 6)
 
 
-def _check_note(dimension: str) -> str:
-    currencies = ", ".join(APPROVED_CURRENCIES)
-    notes = {
-        "Completeness": (
-            "transaction_id must be populated. This supports Principle 4. "
-            "It does not, by itself, show group-wide risk-data aggregation."
-        ),
-        "Accuracy": (
-            f"amount must be present and between {AMOUNT_MIN} and {AMOUNT_MAX} "
-            "inclusive. This is a threshold check, not a statistical outlier test. "
-            "It supports Principle 3, not Principle 7."
-        ),
-        "Validity": (
-            f"currency must be present and one of {currencies}. Validity is a "
-            "data-quality dimension supporting Principle 3. It is not a BCBS 239 principle."
-        ),
-        "Timeliness": (
-            "timestamp must be present and on or after "
-            f"{TIMELINESS_REFERENCE_DATE}. Demo reference date for Principle 5. "
-            "This is not a T+1 control."
-        ),
-    }
-    return notes[dimension]
+def _table_row(pdf: FPDF, values: tuple[str, ...]) -> None:
+    _font(pdf, 7)
+    _cells(pdf, values, 5)
+
+
+def _cells(pdf: FPDF, values: tuple[str, ...], height: float) -> None:
+    if pdf.get_y() + height > pdf.h - pdf.b_margin:
+        pdf.add_page()
+    for index, (value, width) in enumerate(zip(values, _TABLE_WIDTHS, strict=True)):
+        last = index == len(values) - 1
+        pdf.cell(
+            width,
+            height,
+            value,
+            border=1,
+            align="L",
+            new_x=XPos.LMARGIN if last else XPos.RIGHT,
+            new_y=YPos.NEXT if last else YPos.TOP,
+        )
 
 
 def _font(pdf: FPDF, size: float, style: str = "") -> None:
@@ -190,11 +284,4 @@ def _centered(pdf: FPDF, text: str, height: float) -> None:
 
 
 def _paragraph(pdf: FPDF, text: str) -> None:
-    pdf.multi_cell(
-        0,
-        4.5,
-        text,
-        align="L",
-        new_x=XPos.LMARGIN,
-        new_y=YPos.NEXT,
-    )
+    pdf.multi_cell(0, 4.5, text, align="L", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
