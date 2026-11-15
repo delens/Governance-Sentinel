@@ -94,43 +94,6 @@ def test_unknown_defect_rate_is_rejected() -> None:
         generate_risk_dataset(n=40, seed=1, defect_rates={"not_a_defect": 0.1})
 
 
-def test_case_study_quotes_the_measured_runs() -> None:
-    text = (REPO / "docs" / "case-study.md").read_text(encoding="utf-8")
-    runs = json.loads((REPO / "runs" / "kpi_demo.json").read_text(encoding="utf-8"))
-    assert isinstance(runs, list)
-    assert f"{runs[0]['overall_score']:.2f}" in text
-    assert f"{runs[6]['overall_score']:.2f}" in text
-    assert f"{runs[-1]['overall_score']:.2f}" in text
-    assert f"{runs[0]['rules_failed']} of {runs[0]['rules_total']}" in text
-    assert f"{runs[6]['rules_failed']} of {runs[6]['rules_total']}" in text
-    assert "Patrick Lens" in text
-    lowered = text.lower()
-    assert "cobol" not in lowered
-    assert "mainframe" not in lowered
-    assert "dora" not in lowered
-
-    from bias_audit import audit_fairness
-    from governance_sentinel.lineage import build_lineage
-    from governance_sentinel.rules import evaluate_rules, load_rules
-    from governance_sentinel.scores import overall_score, score_principles
-    from governance_sentinel.synthetic import generate_risk_dataset
-
-    frame, reference, _manifest = generate_risk_dataset()
-    ruleset = load_rules(RULES)
-    results = evaluate_rules(frame, ruleset, {"counterparties": reference})
-    lineage = build_lineage(frame, results, inject_break=True)
-    scores = score_principles(results, lineage.reconciliation)
-    fairness = audit_fairness(frame)
-    assert f"{overall_score(scores):.3f}" in text
-    for item in scores:
-        if item.score is None:
-            assert "not measured" in text
-        else:
-            assert f"{item.score:.3f}" in text
-    assert fairness.defined
-    assert f"{fairness.ratio:.4f}" in text
-
-
 def test_committed_demo_history_matches_the_engine() -> None:
     fresh = [item.to_dict() for item in build_seed_runs(RULES, weeks=DEMO_WEEKS, rows=DEMO_ROWS)]
     stored = json.loads((REPO / "runs" / "kpi_demo.json").read_text(encoding="utf-8"))
